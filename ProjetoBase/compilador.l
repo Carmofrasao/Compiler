@@ -113,6 +113,18 @@ end { simbolo = simb_end;
           return FECHA_PARENTESES;
  }
 
+label  { simbolo = simb_label;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" label ");
+          return T_LABEL;
+ }
+
+  { simbolo = ;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME("  ");
+          return ;
+ }
+
 {ident} { simbolo = simb_identificador;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME(" ident  ");
