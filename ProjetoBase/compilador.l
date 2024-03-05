@@ -113,6 +113,60 @@ end { simbolo = simb_end;
           return FECHA_PARENTESES;
  }
 
+\=  { simbolo = simb_igual;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" igual ");
+          return IGUAL;
+ }
+
+\<>  { simbolo = simb_igual_ou_nao;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" igual_ou_nao ");
+          return IGUAL_OU_NAO;
+ }
+
+\<  { simbolo = simb_menor_que;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" menor_que ");
+          return MENOR_QUE;
+ }
+
+\<=  { simbolo = simb_menor_ou_igual;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" menor_ou_igual ");
+          return MENOR_OU_IGUAL;
+ }
+
+\>=  { simbolo = simb_maior_ou_igual;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" maior_ou_igual ");
+          return MAIOR_OU_IGUAL;
+ }
+
+\>  { simbolo = simb_maior_que;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" maior_que ");
+          return MAIOR_QUE;
+ }
+
+\+  { simbolo = simb_mais;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" mais ");
+          return MAIS;
+ }
+
+\-  { simbolo = simb_menos;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" menos");
+          return MENOS;
+ }
+
+\*  { simbolo = simb_multi;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" multi ");
+          return MULTI;
+ }
+
 label  { simbolo = simb_label;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME(" label ");
