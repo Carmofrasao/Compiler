@@ -1,8 +1,15 @@
 Terminais sem uso na gramática
 
+    IGUAL
+    DIFERENTE
+    MENOR_QUE
+    MENOR_OU_IGUAL
+    MAIOR_QUE
     ATRIBUICAO
     THEN
     WHILE
+    MAIOR_OU_IGUAL
+    MAIS
     ARRAY
     TYPE
     LABEL
@@ -15,6 +22,8 @@ Terminais sem uso na gramática
     DIV
     AND
     NOT
+    MENOS
+    MULTI
 
 
 Gramática
@@ -65,81 +74,90 @@ Terminais, com as regras onde eles aparecem
     PROGRAM (258) 2
     ABRE_PARENTESES (259) 2
     FECHA_PARENTESES (260) 2
-    VIRGULA (261) 15 17
-    PONTO_E_VIRGULA (262) 2 13
-    DOIS_PONTOS (263) 13
-    PONTO (264) 2
-    T_BEGIN (265) 19
-    T_END (266) 19
-    VAR (267) 7
-    IDENT (268) 2 14 15 16 17 18
-    ATRIBUICAO (269)
-    THEN (270)
-    WHILE (271)
-    ARRAY (272)
-    TYPE (273)
-    LABEL (274)
-    PROCEDURE (275)
-    GOTO (276)
-    IF (277)
-    ELSE (278)
-    DO (279)
-    OR (280)
-    DIV (281)
-    AND (282)
-    NOT (283)
+    IGUAL (261)
+    DIFERENTE (262)
+    MENOR_QUE (263)
+    VIRGULA (264) 15 17
+    PONTO_E_VIRGULA (265) 2 13
+    DOIS_PONTOS (266) 13
+    PONTO (267) 2
+    MENOR_OU_IGUAL (268)
+    MAIOR_QUE (269)
+    T_BEGIN (270) 19
+    T_END (271) 19
+    VAR (272) 7
+    IDENT (273) 2 14 15 16 17 18
+    ATRIBUICAO (274)
+    THEN (275)
+    WHILE (276)
+    MAIOR_OU_IGUAL (277)
+    MAIS (278)
+    ARRAY (279)
+    TYPE (280)
+    LABEL (281)
+    PROCEDURE (282)
+    GOTO (283)
+    IF (284)
+    ELSE (285)
+    DO (286)
+    OR (287)
+    DIV (288)
+    AND (289)
+    NOT (290)
+    MENOS (291)
+    MULTI (292)
 
 
 Não terminais com as regras onde eles aparecem
 
-    $accept (29)
+    $accept (38)
         à esquerda: 0
-    programa (30)
+    programa (39)
         à esquerda: 2
         à direita: 0
-    $@1 (31)
+    $@1 (40)
         à esquerda: 1
         à direita: 2
-    bloco (32)
+    bloco (41)
         à esquerda: 4
         à direita: 2
-    $@2 (33)
+    $@2 (42)
         à esquerda: 3
         à direita: 4
-    parte_declara_vars (34)
+    parte_declara_vars (43)
         à esquerda: 5
         à direita: 4
-    var (35)
+    var (44)
         à esquerda: 7 8
         à direita: 5
-    $@3 (36)
+    $@3 (45)
         à esquerda: 6
         à direita: 7
-    declara_vars (37)
+    declara_vars (46)
         à esquerda: 9 10
         à direita: 7 9
-    declara_var (38)
+    declara_var (47)
         à esquerda: 13
         à direita: 9 10
-    $@4 (39)
+    $@4 (48)
         à esquerda: 11
         à direita: 13
-    $@5 (40)
+    $@5 (49)
         à esquerda: 12
         à direita: 13
-    tipo (41)
+    tipo (50)
         à esquerda: 14
         à direita: 13
-    lista_id_var (42)
+    lista_id_var (51)
         à esquerda: 15 16
         à direita: 13 15
-    lista_idents (43)
+    lista_idents (52)
         à esquerda: 17 18
         à direita: 2 17
-    comando_composto (44)
+    comando_composto (53)
         à esquerda: 19
         à direita: 4
-    comandos (45)
+    comandos (54)
         à esquerda: 20
         à direita: 19
 

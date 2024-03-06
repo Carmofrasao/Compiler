@@ -119,10 +119,10 @@ end { simbolo = simb_end;
           return IGUAL;
  }
 
-\<>  { simbolo = simb_igual_ou_nao;
+\<>  { simbolo = simb_diferente;
           strncpy (token, yytext, TAM_TOKEN);
-          IMPRIME(" igual_ou_nao ");
-          return IGUAL_OU_NAO;
+          IMPRIME(" diferente ");
+          return DIFERENTE;
  }
 
 \<  { simbolo = simb_menor_que;
