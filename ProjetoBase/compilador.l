@@ -113,6 +113,30 @@ end { simbolo = simb_end;
           return FECHA_PARENTESES;
  }
 
+\{  { simbolo = simb_abre_chave;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" abre_chave ");
+          return ABRE_CHAVE;
+ }
+
+\}  { simbolo = simb_fecha_chave;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" fecha_chave ");
+          return FECHA_CHAVE;
+ }
+
+\[ { simbolo = simb_abre_colchete; 
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" abre_colchete ");
+          return ABRE_COLCHETE;
+ }
+
+\] { simbolo = simb_fecha_colchete;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME(" fecha_colchete ");
+          return FECHA_COLCHETE;
+ }
+
 \=  { simbolo = simb_igual;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME(" igual ");

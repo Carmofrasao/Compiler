@@ -21,7 +21,8 @@ typedef enum simbolos {
   simb_array, simb_procedure, simb_goto, simb_if, simb_else,
   simb_then, simb_while, simb_do, simb_or, simb_div, simb_and,
   simb_not, simb_menor_ou_igual, simb_maior_ou_igual, simb_maior_que,
-  simb_mais, simb_menos, simb_multi
+  simb_mais, simb_menos, simb_multi, simb_abre_chave, simb_fecha_chave,
+  simb_abre_colchete, simb_fecha_colchete
 } simbolos;
 
 
