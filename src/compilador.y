@@ -22,12 +22,12 @@ int num_vars;
 %%
 
 programa    :{
-             geraCodigo (NULL, "INPP");
+             inicioCompilador ();
              }
              PROGRAM IDENT
              ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
              bloco PONTO {
-             geraCodigo (NULL, "PARA");
+             fimCompilador ();
              }
 ;
 
