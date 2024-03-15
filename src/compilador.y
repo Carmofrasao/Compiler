@@ -26,7 +26,8 @@ programa    :{
              }
              PROGRAM IDENT
              ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
-             bloco PONTO {
+             bloco PONTO 
+             {
              fimCompilador ();
              }
 ;
