@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "compilador.h"
+#include "queue.h"
 
 typedef struct pilha_t {
   struct pilha_t *prev;
