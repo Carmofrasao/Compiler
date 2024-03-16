@@ -17,6 +17,11 @@
 #include <string.h>
 #include "compilador.h"
 
+typedef struct pilha_t {
+  struct pilha_t *prev;
+  struct pilha_t *next;
+  int valor;
+} pilha_t;
 
 /* -------------------------------------------------------------------
  *  variáveis globais
@@ -24,6 +29,7 @@
 
 simbolos simbolo, relacao;
 char token[TAM_TOKEN];
+pilha_t *M;
 
 FILE* fp=NULL;
 void inicioCompilador () {
