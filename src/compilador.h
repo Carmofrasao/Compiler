@@ -1,3 +1,7 @@
+#ifndef __COMPILADOR__
+#define __COMPILADOR__
+#include "queue.h"
+
 /* -------------------------------------------------------------------
  *            Arquivo: compilador.h
  * -------------------------------------------------------------------
@@ -13,7 +17,33 @@
 
 #define TAM_TOKEN 16
 
-typedef enum simbolos {
+typedef enum tipo_variavel
+{
+  tipo_int, tipo_bool
+}tipo_variavel;
+
+typedef enum categoria_simbolo 
+{
+  variavel_simples, procedimento, parametro_formal,funcao
+}categoria_simbolo;
+
+
+//tabela de símbolos
+typedef struct pilhaSimbolos
+{
+  tipo_variavel tipoV;
+  categoria_simbolo categoria;
+  simbolos simbolo;
+  int nivel_lexico;
+  int deslocamento;
+  pilhaSimbolos *next;
+  pilhaSimbolos *prev; 
+
+}pilhaSimbolos;
+
+
+typedef enum simbolos 
+{
   simb_program, simb_var, simb_begin, simb_end, simb_igual, simb_diferente,
   simb_identificador, simb_numero, simb_label, simb_type, simb_menor_que,
   simb_ponto, simb_virgula, simb_ponto_e_virgula, simb_dois_pontos,
@@ -46,3 +76,6 @@ void inicioCompilador();
 void fimCompilador();
 int yylex();
 void yyerror(const char *s);
+
+
+#endif

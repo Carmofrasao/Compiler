@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "compilador.h"
+#include "queue.h"
+
+pilhaSimbolos tabelaSimbolo ;
 
 int num_vars;
 
@@ -22,13 +25,13 @@ int num_vars;
 %%
 
 programa    :{
-             inicioCompilador ();
+             geraCodigo (NULL, "INPP");
              }
              PROGRAM IDENT
              ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
              bloco PONTO 
              {
-             fimCompilador ();
+             geraCodigo (NULL, "PARA");
              }
 ;
 

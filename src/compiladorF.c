@@ -33,23 +33,29 @@ char token[TAM_TOKEN];
 pilha_t *M;
 
 FILE* fp=NULL;
-void inicioCompilador () {
 
-  fp = fopen ("MEPA", "w");
+/**
+ * @brief Gera código MEPA em um arquivo fp global
+ * 
+ * @param rot rótulo do código
+ * @param comando nome do comando do código
+ */
+void geraCodigo (char* rot, char* comando) {
 
-  fprintf(fp, "INPP\n");
-  fflush(fp);
+  if (fp == NULL) {
+    fp = fopen ("MEPA", "w");
+  }
 
-}
-
-void fimCompilador (){
-  
-  fprintf(fp, "PARA\n");
-  fflush(fp);
-
+  if ( rot == NULL ) {
+    fprintf(fp, "     %s\n", comando); fflush(fp);
+  } else {
+    fprintf(fp, "%s: %s \n", rot, comando); fflush(fp);
+  }
 }
 
 int imprimeErro ( char* erro ) {
   fprintf (stderr, "Erro na linha %d - %s\n", nl, erro);
   exit(-1);
 }
+
+
