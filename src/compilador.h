@@ -27,21 +27,6 @@ typedef enum categoria_simbolo
   variavel_simples, procedimento, parametro_formal,funcao
 }categoria_simbolo;
 
-
-//tabela de símbolos
-typedef struct pilhaSimbolos
-{
-  tipo_variavel tipoV;
-  categoria_simbolo categoria;
-  simbolos simbolo;
-  int nivel_lexico;
-  int deslocamento;
-  pilhaSimbolos *next;
-  pilhaSimbolos *prev; 
-
-}pilhaSimbolos;
-
-
 typedef enum simbolos 
 {
   simb_program, simb_var, simb_begin, simb_end, simb_igual, simb_diferente,
@@ -55,7 +40,21 @@ typedef enum simbolos
   simb_abre_colchete, simb_fecha_colchete
 } simbolos;
 
+//tabela de símbolos
+typedef struct pilhaSimbolos
+{
+  struct pilhaSimbolos *prev; 
+  struct pilhaSimbolos *next;
+  char *identificador;
+  tipo_variavel tipov;
+  categoria_simbolo categoria;
+  simbolos simbolo;
+  int nivel_lexico;
+  int deslocamento;
 
+}pilhaSimbolos;
+
+void geraCodigo (char* rot, char* comando);
 
 /* -------------------------------------------------------------------
  * variáveis globais
@@ -66,6 +65,7 @@ extern char token[TAM_TOKEN];
 extern int nivel_lexico;
 extern int desloc;
 extern int nl;
+extern FILE* fp;
 
 
 /* -------------------------------------------------------------------

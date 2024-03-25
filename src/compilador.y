@@ -10,9 +10,11 @@
 #include "compilador.h"
 #include "queue.h"
 
-pilhaSimbolos tabelaSimbolo ;
+pilhaSimbolos* tabelaSimbolo;
 
 int num_vars;
+int nivel_lexico;
+int desloc;
 
 %}
 
@@ -41,6 +43,20 @@ bloco       :
               }
 
               comando_composto
+              {
+                if (tabelaSimbolo != NULL) {
+                  int count = 0;
+                  pilhaSimbolos *fim = tabelaSimbolo->prev;
+                  while(tabelaSimbolo && fim->nivel_lexico == nivel_lexico) {
+                    fim = fim->prev;
+                    pilhaSimbolos * no = queue_pop((queue_t**) &tabelaSimbolo);
+                    free(no);
+                    count++;
+                  }
+                  
+                  fprintf(fp, "     DMEM %d\n", count); fflush(fp);
+                }
+              }
               ;
 
 
@@ -58,20 +74,58 @@ declara_vars: declara_vars declara_var
             | declara_var
 ;
 
-declara_var : { }
+declara_var : { num_vars = 0; }
               lista_id_var DOIS_PONTOS
               tipo
-              { /* AMEM */
+              { 
+                fprintf(fp, "     AMEM %d\n", num_vars); fflush(fp);
               }
               PONTO_E_VIRGULA
 ;
 
-tipo        : IDENT
+tipo        : IDENT 
+            {
+              tipo_variavel tipo;
+              if (strcmp(token, "integer") == 0) {
+                tipo = tipo_int;
+              } else if (strcmp(token, "boolean") == 0) {
+                tipo = tipo_bool;
+              } else {
+                yyerror("tipo nao encontrado");
+              }
+              pilhaSimbolos *fim = tabelaSimbolo->prev;
+              for (int i = 0; i < num_vars; i++) {
+                fim->tipov = tipo;
+                fim = fim->prev;
+              }
+            }
 ;
 
 lista_id_var: lista_id_var VIRGULA IDENT
-              { /* insere �ltima vars na tabela de s�mbolos */ }
-            | IDENT { /* insere vars na tabela de s�mbolos */}
+              { 
+                pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
+                no->identificador = calloc(1, TAM_TOKEN);
+                strncpy(no->identificador, token, TAM_TOKEN);
+                no->categoria = variavel_simples;
+                no->nivel_lexico = nivel_lexico;
+                no->deslocamento = desloc;
+                desloc++;
+                num_vars++;
+                queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
+              }
+            | IDENT 
+            { 
+              
+                pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
+                no->identificador = calloc(1, TAM_TOKEN);
+                strncpy(no->identificador, token, TAM_TOKEN);
+                no->categoria = variavel_simples;
+                no->nivel_lexico = nivel_lexico;
+                no->deslocamento = desloc;
+                desloc++;
+                num_vars++;
+                queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
+            }
 ;
 
 lista_idents: lista_idents VIRGULA IDENT
@@ -81,7 +135,7 @@ lista_idents: lista_idents VIRGULA IDENT
 
 comando_composto: T_BEGIN comandos T_END
 
-comandos:
+comandos: 
 ;
 
 
@@ -106,6 +160,8 @@ int main (int argc, char** argv) {
 /* -------------------------------------------------------------------
  *  Inicia a Tabela de S�mbolos
  * ------------------------------------------------------------------- */
+
+  tabelaSimbolo = NULL;
 
    yyin=fp;
    yyparse();
