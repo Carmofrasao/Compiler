@@ -22,7 +22,8 @@ int desloc;
 %token VIRGULA PONTO_E_VIRGULA DOIS_PONTOS PONTO MENOR_OU_IGUAL MAIOR_QUE
 %token T_BEGIN T_END VAR IDENT ATRIBUICAO THEN WHILE MAIOR_OU_IGUAL MAIS
 %token ARRAY TYPE LABEL PROCEDURE GOTO IF ELSE DO OR DIV AND NOT MENOS MULTI
-%token ABRE_CHAVE FECHA_CHAVE ABRE_COLCHETE FECHA_COLCHETE
+%token ABRE_CHAVE FECHA_CHAVE ABRE_COLCHETE FECHA_COLCHETE NUMERO DIVISAO
+%token READ WRITE
 
 %%
 
@@ -57,16 +58,12 @@ bloco       :
                   fprintf(fp, "     DMEM %d\n", count); fflush(fp);
                 }
               }
-              ;
-
-
-
+;
 
 parte_declara_vars:  var
 ;
 
-
-var         : { } VAR declara_vars
+var         : VAR declara_vars
             |
 ;
 
@@ -91,7 +88,7 @@ tipo        : IDENT
               } else if (strcmp(token, "boolean") == 0) {
                 tipo = tipo_bool;
               } else {
-                yyerror("tipo nao encontrado");
+                imprimeErro("tipo nao encontrado");
               }
               pilhaSimbolos *fim = tabelaSimbolo->prev;
               for (int i = 0; i < num_vars; i++) {
@@ -132,12 +129,49 @@ lista_idents: lista_idents VIRGULA IDENT
             | IDENT
 ;
 
-
 comando_composto: T_BEGIN comandos T_END
-
-comandos: 
 ;
 
+comandos: comandos PONTO_E_VIRGULA comando
+            | comando
+            |
+;
+
+comando: rotulo comando_sem_rotulo 
+            | comando_sem_rotulo
+;
+
+rotulo: numero DOIS_PONTOS
+;
+
+numero: NUMERO
+;
+
+comando_sem_rotulo: atribuicao 
+            | chamada_de_procedimento 
+            | desvio
+            | comando_composto
+            | comando_condicional
+            | comando_repetitivo
+;
+
+atribuicao:
+;
+
+chamada_de_procedimento:
+;
+
+desvio:
+;
+
+comando_composto:
+;
+
+comando_condicional:
+;
+
+comando_repetitivo:
+;
 
 %%
 

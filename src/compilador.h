@@ -33,11 +33,11 @@ typedef enum simbolos
   simb_identificador, simb_numero, simb_label, simb_type, simb_menor_que,
   simb_ponto, simb_virgula, simb_ponto_e_virgula, simb_dois_pontos,
   simb_atribuicao, simb_abre_parenteses, simb_fecha_parenteses,
-  simb_array, simb_procedure, simb_goto, simb_if, simb_else,
+  simb_array, simb_procedure, simb_goto, simb_if, simb_else, simb_divisao,
   simb_then, simb_while, simb_do, simb_or, simb_div, simb_and,
   simb_not, simb_menor_ou_igual, simb_maior_ou_igual, simb_maior_que,
   simb_mais, simb_menos, simb_multi, simb_abre_chave, simb_fecha_chave,
-  simb_abre_colchete, simb_fecha_colchete
+  simb_abre_colchete, simb_fecha_colchete, simb_write, simb_read,
 } simbolos;
 
 //tabela de símbolos
@@ -55,6 +55,7 @@ typedef struct pilhaSimbolos
 }pilhaSimbolos;
 
 void geraCodigo (char* rot, char* comando);
+int imprimeErro ( char* erro );
 
 /* -------------------------------------------------------------------
  * variáveis globais
@@ -72,8 +73,6 @@ extern FILE* fp;
  * prototipos globais
  * ------------------------------------------------------------------- */
 
-void inicioCompilador();
-void fimCompilador();
 int yylex();
 void yyerror(const char *s);
 
