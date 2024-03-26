@@ -27,37 +27,38 @@ int desloc;
 
 %%
 
-programa    :{
-             geraCodigo (NULL, "INPP");
-             }
-             PROGRAM IDENT
-             ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
-             bloco PONTO 
-             {
-             geraCodigo (NULL, "PARA");
-             }
+programa    :
+            {
+              geraCodigo (NULL, "INPP");
+            }
+            PROGRAM IDENT
+            ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
+            bloco PONTO 
+            {
+              geraCodigo (NULL, "PARA");
+            }
 ;
 
 bloco       :
-              parte_declara_vars
-              {
-              }
+            parte_declara_vars
+            {
+            }
 
-              comando_composto
-              {
-                if (tabelaSimbolo != NULL) {
-                  int count = 0;
-                  pilhaSimbolos *fim = tabelaSimbolo->prev;
-                  while(tabelaSimbolo && fim->nivel_lexico == nivel_lexico) {
-                    fim = fim->prev;
-                    pilhaSimbolos * no = queue_pop((queue_t**) &tabelaSimbolo);
-                    free(no);
-                    count++;
-                  }
-                  
-                  fprintf(fp, "     DMEM %d\n", count); fflush(fp);
+            comando_composto
+            {
+              if (tabelaSimbolo != NULL) {
+                int count = 0;
+                pilhaSimbolos *fim = tabelaSimbolo->prev;
+                while(tabelaSimbolo && fim->nivel_lexico == nivel_lexico) {
+                  fim = fim->prev;
+                  pilhaSimbolos * no = queue_pop((queue_t**) &tabelaSimbolo);
+                  free(no);
+                  count++;
                 }
+                  
+                fprintf(fp, "     DMEM %d\n", count); fflush(fp);
               }
+            }
 ;
 
 parte_declara_vars:  var
@@ -71,12 +72,15 @@ declara_vars: declara_vars declara_var
             | declara_var
 ;
 
-declara_var : { num_vars = 0; }
-              lista_id_var DOIS_PONTOS
-              tipo
-              { 
-                fprintf(fp, "     AMEM %d\n", num_vars); fflush(fp);
-              }
+declara_var : 
+            { 
+              num_vars = 0; 
+            }
+            lista_id_var DOIS_PONTOS
+            tipo
+            { 
+              fprintf(fp, "     AMEM %d\n", num_vars); fflush(fp);
+            }
               PONTO_E_VIRGULA
 ;
 
@@ -99,7 +103,7 @@ tipo        : IDENT
 ;
 
 lista_id_var: lista_id_var VIRGULA IDENT
-              { 
+            { 
                 pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
                 no->identificador = calloc(1, TAM_TOKEN);
                 strncpy(no->identificador, token, TAM_TOKEN);
@@ -109,7 +113,7 @@ lista_id_var: lista_id_var VIRGULA IDENT
                 desloc++;
                 num_vars++;
                 queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
-              }
+            }
             | IDENT 
             { 
               
@@ -155,8 +159,39 @@ comando_sem_rotulo: atribuicao
             | comando_repetitivo
 ;
 
-atribuicao:
+atribuicao: variavel ATRIBUICAO expressao
 ;
+
+variavel: IDENT
+            {
+              pilhaSimbolos *no = tabelaSimbolo->prev;
+              
+              while(strcmp(no->identificador, token))
+                no = no->prev;
+              
+              if(no->categoria != variavel_simples &&
+                 no->categoria != parametro_formal &&
+                 no->categoria != funcao)
+                imprimeErro("Erro de atribuição");
+              
+              
+            } 
+//            | IDENT lista_de_expressao
+;
+
+expressao: expressao_simples
+            | relacao expressao_simple
+;
+
+expressao_simples: mais_ou_menos termo
+;
+
+mais_ou_menos: SOMA
+            | MENOS
+            |
+;
+
+termo: 
 
 chamada_de_procedimento:
 ;
@@ -172,6 +207,9 @@ comando_condicional:
 
 comando_repetitivo:
 ;
+
+//lista_de_expressao:
+//;
 
 %%
 
