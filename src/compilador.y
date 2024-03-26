@@ -187,7 +187,7 @@ variavel: IDENT
               
               while(strcmp(no->identificador, token) && no != tabelaSimbolo)
                 no = no->prev;
-              
+
               if(strcmp(no->identificador, token) != 0)
                 imprimeErro("Variavel nao encontrada.");
               
@@ -289,6 +289,7 @@ fator: variavel
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              fprintf(fp, "     CRCT %s\n", token); fflush(fp);
             }
             | chamada_de_funcao
             | ABRE_PARENTESES expressao FECHA_PARENTESES
