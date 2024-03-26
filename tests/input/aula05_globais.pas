@@ -1,6 +1,6 @@
 program varsGlobais (input, output);
 var a1, a2, a3 : integer;
-var b1, b2, b3 : boolean;
+    b1, b2, b3 : boolean;
 begin    
     a1 := 1;
     a2 := 2;

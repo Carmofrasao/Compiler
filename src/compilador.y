@@ -11,10 +11,13 @@
 #include "queue.h"
 
 pilhaSimbolos* tabelaSimbolo;
+pilhaTipos* tabelaTipos;
 
 int num_vars;
 int nivel_lexico;
 int desloc;
+
+pilhaSimbolos * l_elem;
 
 %}
 
@@ -149,7 +152,12 @@ rotulo: numero DOIS_PONTOS
 ;
 
 numero: NUMERO
+//            {
+// Caso o goto seja implementado, havera codigo aqui
+//            }
 ;
+
+boolean: 
 
 comando_sem_rotulo: atribuicao 
             | chamada_de_procedimento 
@@ -159,42 +167,138 @@ comando_sem_rotulo: atribuicao
             | comando_repetitivo
 ;
 
-atribuicao: variavel ATRIBUICAO expressao
+atribuicao: variavel ATRIBUICAO expressao 
+            {
+              // compara tipo do l_elem
+              // com o tipo do topo da pilha
+              pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
+              if(l_elem->tipov == tipo_expressao->tipo){
+                fprintf(fp, "     ARMZ %d, %d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+              }
+              else
+                imprimeErro("Erro de tipo");
+              l_elem = NULL;
+            }
 ;
 
 variavel: IDENT
             {
               pilhaSimbolos *no = tabelaSimbolo->prev;
               
-              while(strcmp(no->identificador, token))
+              while(strcmp(no->identificador, token) && no != tabelaSimbolo)
                 no = no->prev;
+              
+              if(strcmp(no->identificador, token) != 0)
+                imprimeErro("Variavel nao encontrada.");
               
               if(no->categoria != variavel_simples &&
                  no->categoria != parametro_formal &&
                  no->categoria != funcao)
                 imprimeErro("Erro de atribuição");
 
-             // Implementar a pilha de tipo!!!!! 
-              
+              l_elem = no;
             } 
-//            | IDENT lista_de_expressao
 ;
 
 expressao: expressao_simples
-            | relacao expressao_simple
+            | relacao expressao_simples
 ;
 
-expressao_simples: mais_ou_menos termo
+expressao_simples: mais_ou_menos termo expressao_simples
+            | MAIS termo expressao_simples
+            | MENOS termo expressao_simples
+            | OR termo expressao_simples
+            |
 ;
 
-mais_ou_menos: SOMA
+mais_ou_menos: MAIS
             | MENOS
             |
 ;
 
-termo: 
+termo: termo AND fator 
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_bool;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são booleanos
+              if(tipo1->tipo == tipo2->tipo)
+                // se for empilha boolean
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
+            | termo DIV fator 
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_int;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são int
+              if(tipo1->tipo == tipo2->tipo)
+                // se for empilha int
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
+            | termo MULTI fator
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_int;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são int
+              if(tipo1->tipo == tipo2->tipo)
+                // se for empilha int
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
+            | termo DIVISAO fator
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_int;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são int
+              if(tipo1->tipo == tipo2->tipo)
+                // se for empilha int
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
+            | fator
+;
+
+relacao: IGUAL | DIFERENTE | MENOR_QUE | MENOR_OU_IGUAL | MAIOR_OU_IGUAL | MAIOR_QUE 
+;
+
+fator: variavel
+            | numero 
+            {
+              // empilhar inteiro
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_int;
+              queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+            }
+            | chamada_de_funcao
+            | ABRE_PARENTESES expressao FECHA_PARENTESES
+            | NOT fator
+;
 
 chamada_de_procedimento:
+;
+
+chamada_de_funcao:
 ;
 
 desvio:
@@ -235,6 +339,7 @@ int main (int argc, char** argv) {
  * ------------------------------------------------------------------- */
 
   tabelaSimbolo = NULL;
+  tabelaTipos = NULL;
 
    yyin=fp;
    yyparse();

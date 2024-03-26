@@ -54,6 +54,13 @@ typedef struct pilhaSimbolos
 
 }pilhaSimbolos;
 
+typedef struct pilhaTipos
+{
+  struct pilhaTipos *prev;
+  struct pilhaTipos *next;
+  tipo_variavel tipo;
+}pilhaTipos;
+
 void geraCodigo (char* rot, char* comando);
 int imprimeErro ( char* erro );
 
