@@ -173,7 +173,8 @@ variavel: IDENT
                  no->categoria != parametro_formal &&
                  no->categoria != funcao)
                 imprimeErro("Erro de atribuição");
-              
+
+             // Implementar a pilha de tipo!!!!! 
               
             } 
 //            | IDENT lista_de_expressao
