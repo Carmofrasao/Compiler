@@ -17,6 +17,8 @@ int num_vars;
 int nivel_lexico;
 int desloc;
 
+char compara[5];
+
 pilhaSimbolos * l_elem;
 
 %}
@@ -202,13 +204,80 @@ variavel: IDENT
 
 expressao: expressao_simples
             | relacao expressao_simples
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_bool;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são bool
+              if(tipo1->tipo == tipo2->tipo){
+                // se for empilha bool
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+                geraCodigo(NULL, compara);
+              }
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
 ;
 
-expressao_simples: mais_ou_menos termo expressao_simples
-            | MAIS termo expressao_simples
-            | MENOS termo expressao_simples
-            | OR termo expressao_simples
+expressao_simples: mais_ou_menos termo mais_menos_or_termo expressao_simples
+            | mais_ou_menos termo
             |
+;
+
+mais_menos_or_termo: MAIS termo
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_int;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são int
+              if(tipo1->tipo == tipo2->tipo){
+                // se for empilha int
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+                geraCodigo(NULL, "SOMA");
+              }
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
+            | MENOS termo
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_int;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são int
+              if(tipo1->tipo == tipo2->tipo){
+                // se for empilha int
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+                geraCodigo(NULL, "SUBI");
+              }
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
+            | OR termo
+            {
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_bool;
+              // desempilha dois
+              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
+              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
+              // verifica se os dois são int
+              if(tipo1->tipo == tipo2->tipo){
+                // se for empilha int
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+                geraCodigo(NULL, "DISJ");
+              }
+              else
+                // se não for, é erro
+                imprimeErro("Erro de tipo");
+            }
 ;
 
 mais_ou_menos: MAIS
@@ -279,10 +348,36 @@ termo: termo AND fator
             | fator
 ;
 
-relacao: IGUAL | DIFERENTE | MENOR_QUE | MENOR_OU_IGUAL | MAIOR_OU_IGUAL | MAIOR_QUE 
+relacao: IGUAL
+            {
+               strcpy(compara, "CMIG");
+            }
+            | DIFERENTE 
+            {
+               strcpy(compara, "CMDG");
+            }
+            | MENOR_QUE 
+            {
+               strcpy(compara, "CMME");
+            }
+            | MENOR_OU_IGUAL 
+            {
+               strcpy(compara, "CMEG");
+            }
+            | MAIOR_OU_IGUAL 
+            {
+               strcpy(compara, "CMAG");
+            }
+            | MAIOR_QUE 
+            {
+               strcpy(compara, "CMMA");
+            }
 ;
 
 fator: variavel
+            {
+              // tem que empilhar a variavel!!!!
+            }
             | numero 
             {
               // empilhar inteiro
