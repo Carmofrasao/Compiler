@@ -142,7 +142,7 @@ lista_idents: lista_idents VIRGULA IDENT
 comando_composto: T_BEGIN comandos T_END
 ;
 
-comandos: comandos PONTO_E_VIRGULA comando
+comandos: comando PONTO_E_VIRGULA comandos
             | comando
             |
 ;
@@ -436,6 +436,7 @@ comando_repetitivo: WHILE
             }
             expressao DO 
             {
+              // FAlta carregar os valores da comparação, pg 22 aula 8
               pilhaRotulo * rot = queue_pop((queue_t**) &tabelaRotulo);
               fprintf(fp, "     DSVF %s\n", rot->rotulo); fflush(fp);
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) rot);
