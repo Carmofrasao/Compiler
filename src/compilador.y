@@ -418,8 +418,8 @@ comando_condicional:
 comando_repetitivo:
 ;
 
-//lista_de_expressao:
-//;
+lista_de_expressao:
+;
 
 leitura: READ ABRE_PARENTESES lista_leitura FECHA_PARENTESES
 ;
