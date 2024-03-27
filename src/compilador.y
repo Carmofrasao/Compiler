@@ -157,14 +157,14 @@ numero: NUMERO
 //            }
 ;
 
-boolean: 
-
 comando_sem_rotulo: atribuicao 
             | chamada_de_procedimento 
             | desvio
             | comando_composto
             | comando_condicional
             | comando_repetitivo
+            | leitura
+            | escrita
 ;
 
 atribuicao: variavel ATRIBUICAO expressao 
@@ -317,6 +317,42 @@ comando_repetitivo:
 //lista_de_expressao:
 //;
 
+leitura: READ ABRE_PARENTESES lista_leitura FECHA_PARENTESES
+;
+
+lista_leitura: lista_leitura VIRGULA simbolo_leitura
+   	        | simbolo_leitura
+;
+
+simbolo_leitura: IDENT
+	          {
+		          geraCodigo(NULL, "LEIT");
+		
+              pilhaSimbolos *no = tabelaSimbolo->prev;
+              
+              while(strcmp(no->identificador, token) && no != tabelaSimbolo)
+                no = no->prev;
+
+              if(strcmp(no->identificador, token) != 0)
+                imprimeErro("Variavel nao encontrada.");
+
+              fprintf(fp, "     ARMZ %d, %d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+	          }
+;
+
+escrita: WRITE ABRE_PARENTESES lista_escrita FECHA_PARENTESES
+;
+
+lista_escrita: lista_escrita VIRGULA expressao 
+            { 
+              geraCodigo (NULL, "IMPR"); 
+            }
+	          | expressao 
+            { 
+              geraCodigo (NULL, "IMPR"); 
+            }
+;
+
 %%
 
 int main (int argc, char** argv) {
@@ -341,6 +377,7 @@ int main (int argc, char** argv) {
 
   tabelaSimbolo = NULL;
   tabelaTipos = NULL;
+  l_elem = NULL;
 
    yyin=fp;
    yyparse();
