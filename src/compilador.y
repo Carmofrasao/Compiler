@@ -12,11 +12,12 @@
 
 pilhaSimbolos* tabelaSimbolo;
 pilhaTipos* tabelaTipos;
+pilhaRotulo* tabelaRotulo;
 
 int num_vars;
 int nivel_lexico;
 int desloc;
-
+int RotID;              
 char compara[5];
 
 pilhaSimbolos * l_elem;
@@ -409,13 +410,45 @@ chamada_de_funcao:
 desvio:
 ;
 
-comando_composto:
+comando_composto: T_BEGIN comando comando_composto T_END
+            | PONTO_E_VIRGULA comando
 ;
 
 comando_condicional:
 ;
 
-comando_repetitivo:
+comando_repetitivo: WHILE 
+            {
+              char* rotuloI = geraRotulo(RotID);
+              RotID++;
+              char* rotuloF = geraRotulo(RotID);
+              RotID++;
+              
+              pilhaRotulo * noI = calloc(1, sizeof(pilhaRotulo));
+              noI->rotulo = rotuloI;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noI);
+
+              pilhaRotulo * noF = calloc(1, sizeof(pilhaRotulo));
+              noF->rotulo = rotuloF;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noF);
+
+              geraCodigo(rotuloI, "NADA");
+            }
+            expressao DO 
+            {
+              pilhaRotulo * rot = queue_pop((queue_t**) &tabelaRotulo);
+              fprintf(fp, "     DSVF %s\n", rot->rotulo); fflush(fp);
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) rot);
+            }
+            comando_sem_rotulo
+            {
+              pilhaRotulo * rotF = queue_pop((queue_t**) &tabelaRotulo);
+              pilhaRotulo * rotI = queue_pop((queue_t**) &tabelaRotulo);
+
+              fprintf(fp, "     DSVS %s\n", rotI->rotulo); fflush(fp);
+              
+              geraCodigo(rotF->rotulo, "NADA");
+            }
 ;
 
 lista_de_expressao:
@@ -460,19 +493,19 @@ lista_escrita: lista_escrita VIRGULA expressao
 %%
 
 int main (int argc, char** argv) {
-   FILE* fp;
-   extern FILE* yyin;
+  FILE* fp;
+  extern FILE* yyin;
 
-   if (argc<2 || argc>2) {
-         printf("usage compilador <arq>a %d\n", argc);
-         return(-1);
-      }
+  if (argc<2 || argc>2) {
+    printf("usage compilador <arq>a %d\n", argc);
+    return(-1);
+  }
 
-   fp=fopen (argv[1], "r");
-   if (fp == NULL) {
-      printf("usage compilador <arq>b\n");
-      return(-1);
-   }
+  fp=fopen (argv[1], "r");
+  if (fp == NULL) {
+     printf("usage compilador <arq>b\n");
+     return(-1);
+  }
 
 
 /* -------------------------------------------------------------------
@@ -481,10 +514,12 @@ int main (int argc, char** argv) {
 
   tabelaSimbolo = NULL;
   tabelaTipos = NULL;
+  tabelaRotulo = NULL;
   l_elem = NULL;
+  RotID = 0;
 
-   yyin=fp;
-   yyparse();
+  yyin=fp;
+  yyparse();
 
-   return 0;
+  return 0;
 }

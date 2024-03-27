@@ -61,8 +61,16 @@ typedef struct pilhaTipos
   tipo_variavel tipo;
 }pilhaTipos;
 
+typedef struct pilhaRotulo
+{
+  struct pilhaTipos *prev;
+  struct pilhaTipos *next;
+  char *rotulo; 
+}pilhaRotulo;
+
 void geraCodigo (char* rot, char* comando);
 int imprimeErro ( char* erro );
+char* geraRotulo(int rotId);
 
 /* -------------------------------------------------------------------
  * variáveis globais

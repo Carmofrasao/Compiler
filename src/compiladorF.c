@@ -53,6 +53,12 @@ void geraCodigo (char* rot, char* comando) {
   }
 }
 
+char* geraRotulo(int rotId){
+  char *rotulo = (char*)malloc(4 * sizeof(char));
+  sprintf(rotulo, "R%02d", rotId);
+  return rotulo;  
+}
+
 int imprimeErro ( char* erro ) {
   fprintf (stderr, "Erro na linha %d - %s\n", nl, erro);
   exit(-1);

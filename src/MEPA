@@ -1,6 +1,38 @@
      INPP
      AMEM 1
-     CRCT 666
+     AMEM 1
+     CRCT 1
      ARMZ 0, 0
-     DMEM 1
-     PARA
+R00: NADA 
+     CRCT 0
+     CMMA
+     DSVF R01
+     CRCT 5
+     IMPR
+R02: NADA 
+     CRCT 0
+     CMMA
+     DSVF R03
+     CRCT 4
+     IMPR
+R04: NADA 
+     CRCT 0
+     CMMA
+     DSVF R05
+     CRCT 3
+     IMPR
+R06: NADA 
+     CRCT 0
+     CMMA
+     DSVF R07
+     CRCT 2
+     IMPR
+R08: NADA 
+     CRCT 0
+     CMMA
+     DSVF R09
+     CRCT 1
+     IMPR
+     CRCT 1
+     SUBI
+     ARMZ 0, 0

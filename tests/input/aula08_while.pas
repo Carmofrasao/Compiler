@@ -1,6 +1,6 @@
 program comandoWhile(input, output);
 var a1 : integer;
-var b1 : boolean;
+    b1 : boolean;
 begin 
     a1 := 1;
     while(a1 > 0) do

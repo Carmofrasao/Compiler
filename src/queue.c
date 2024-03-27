@@ -216,7 +216,10 @@ void *queue_pop (queue_t **queue){
   aux2 = aux2->prev;
   aux2->next = aux1;
   aux1->prev = aux2;
-  
+
+  aux3->next = NULL;
+  aux3->prev = NULL;
+
   return aux3;
 
 }
