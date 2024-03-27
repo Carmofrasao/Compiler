@@ -186,7 +186,6 @@ atribuicao: variavel ATRIBUICAO expressao
 variavel: IDENT
             {
               pilhaSimbolos *no = tabelaSimbolo->prev;
-              
               while(strcmp(no->identificador, token) && no != tabelaSimbolo)
                 no = no->prev;
 
@@ -202,8 +201,7 @@ variavel: IDENT
             } 
 ;
 
-expressao: expressao_simples
-            | relacao expressao_simples
+expressao: expressao_simples relacao expressao
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
@@ -220,6 +218,7 @@ expressao: expressao_simples
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
             }
+            | expressao_simples
 ;
 
 expressao_simples: mais_ou_menos termo mais_menos_or_termo expressao_simples
@@ -377,6 +376,16 @@ relacao: IGUAL
 fator: variavel
             {
               // tem que empilhar a variavel!!!!
+              pilhaSimbolos *no = tabelaSimbolo->prev;
+              while(strcmp(no->identificador, token) && no != tabelaSimbolo)
+                no = no->prev;
+
+              if(strcmp(no->identificador, token) != 0)
+                imprimeErro("Variavel nao encontrada.");
+               
+              pilhaTipos * tipo_var = calloc(1, sizeof(pilhaTipos));
+              tipo_var->tipo = no->tipov;
+              queue_append((queue_t**) &tabelaTipos, (queue_t*) tipo_var);
             }
             | numero 
             {
