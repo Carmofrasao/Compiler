@@ -162,6 +162,9 @@ numero: NUMERO
 
 comando_sem_rotulo: atribuicao 
             | chamada_de_procedimento 
+            {
+              //WTF ta entrando aqui no while??????
+            } 
             | desvio
             | comando_composto
             | comando_condicional
@@ -176,7 +179,7 @@ atribuicao: variavel ATRIBUICAO expressao
               // com o tipo do topo da pilha
               pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
               if(l_elem->tipov == tipo_expressao->tipo){
-                fprintf(fp, "     ARMZ %d, %d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+                fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
               }
               else
                 imprimeErro("Erro de tipo");
@@ -197,8 +200,9 @@ variavel: IDENT
                  no->categoria != parametro_formal &&
                  no->categoria != funcao)
                 imprimeErro("Erro de atribuição");
-
-              l_elem = no;
+              
+              if(l_elem == NULL)
+                l_elem = no;
             } 
 ;
 
@@ -224,7 +228,6 @@ expressao: expressao_simples relacao expressao
 
 expressao_simples: mais_ou_menos termo mais_menos_or_termo expressao_simples
             | mais_ou_menos termo
-            |
 ;
 
 mais_menos_or_termo: MAIS termo
@@ -387,6 +390,7 @@ fator: variavel
               pilhaTipos * tipo_var = calloc(1, sizeof(pilhaTipos));
               tipo_var->tipo = no->tipov;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) tipo_var);
+              fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
             }
             | numero 
             {
@@ -436,7 +440,6 @@ comando_repetitivo: WHILE
             }
             expressao DO 
             {
-              // FAlta carregar os valores da comparação, pg 22 aula 8
               pilhaRotulo * rot = queue_pop((queue_t**) &tabelaRotulo);
               fprintf(fp, "     DSVF %s\n", rot->rotulo); fflush(fp);
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) rot);
@@ -474,7 +477,7 @@ simbolo_leitura: IDENT
               if(strcmp(no->identificador, token) != 0)
                 imprimeErro("Variavel nao encontrada.");
 
-              fprintf(fp, "     ARMZ %d, %d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              fprintf(fp, "     ARMZ %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
 	          }
 ;
 
