@@ -33,7 +33,7 @@ pilhaSimbolos * l_elem;
 
 %%
 
-programa    :
+programa:
             {
               geraCodigo (NULL, "INPP");
             }
@@ -45,12 +45,7 @@ programa    :
             }
 ;
 
-bloco       :
-            parte_declara_vars
-            {
-            }
-
-            comando_composto
+bloco: parte_declara_vars comando_composto
             {
               if (tabelaSimbolo != NULL) {
                 int count = 0;
@@ -67,10 +62,10 @@ bloco       :
             }
 ;
 
-parte_declara_vars:  var
+parte_declara_vars: var
 ;
 
-var         : VAR declara_vars
+var: VAR declara_vars
             |
 ;
 
@@ -78,7 +73,7 @@ declara_vars: declara_vars declara_var
             | declara_var
 ;
 
-declara_var : 
+declara_var: 
             { 
               num_vars = 0; 
             }
@@ -87,10 +82,10 @@ declara_var :
             { 
               fprintf(fp, "     AMEM %d\n", num_vars); fflush(fp);
             }
-              PONTO_E_VIRGULA
+            PONTO_E_VIRGULA
 ;
 
-tipo        : IDENT 
+tipo: IDENT 
             {
               tipo_variavel tipo;
               if (strcmp(token, "integer") == 0) {
@@ -160,34 +155,17 @@ numero: NUMERO
 //            }
 ;
 
-comando_sem_rotulo: atribuicao 
-            | chamada_de_procedimento 
-            {
-              //WTF ta entrando aqui no while??????
-            } 
-            | desvio
+comando_sem_rotulo: comando_repetitivo
+            | atribuicao 
+            // | chamada_de_procedimento 
             | comando_composto
-            | comando_condicional
-            | comando_repetitivo
+            // | comando_condicional
+            // | desvio
             | leitura
             | escrita
 ;
 
-atribuicao: variavel ATRIBUICAO expressao 
-            {
-              // compara tipo do l_elem
-              // com o tipo do topo da pilha
-              pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
-              if(l_elem->tipov == tipo_expressao->tipo){
-                fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
-              }
-              else
-                imprimeErro("Erro de tipo");
-              l_elem = NULL;
-            }
-;
-
-variavel: IDENT
+atribuicao: variavel
             {
               pilhaSimbolos *no = tabelaSimbolo->prev;
               while(strcmp(no->identificador, token) && no != tabelaSimbolo)
@@ -203,7 +181,23 @@ variavel: IDENT
               
               if(l_elem == NULL)
                 l_elem = no;
-            } 
+              else
+                imprimeErro("l_elemet nao e NULL");
+            } ATRIBUICAO expressao 
+            {
+              // compara tipo do l_elem
+              // com o tipo do topo da pilha
+              pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
+              if(l_elem->tipov == tipo_expressao->tipo){
+                fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+              }
+              else
+                imprimeErro("Erro de tipo");
+              l_elem = NULL;
+            }
+;
+
+variavel: IDENT
 ;
 
 expressao: expressao_simples relacao expressao
@@ -226,11 +220,7 @@ expressao: expressao_simples relacao expressao
             | expressao_simples
 ;
 
-expressao_simples: mais_ou_menos termo mais_menos_or_termo expressao_simples
-            | mais_ou_menos termo
-;
-
-mais_menos_or_termo: MAIS termo
+expressao_simples: mais_ou_menos_termo MAIS expressao_simples
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
@@ -247,7 +237,7 @@ mais_menos_or_termo: MAIS termo
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
             }
-            | MENOS termo
+            | mais_ou_menos_termo MENOS expressao_simples
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
@@ -264,7 +254,7 @@ mais_menos_or_termo: MAIS termo
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
             }
-            | OR termo
+            | mais_ou_menos_termo OR expressao_simples
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
@@ -281,11 +271,12 @@ mais_menos_or_termo: MAIS termo
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
             }
+            | mais_ou_menos_termo
 ;
 
-mais_ou_menos: MAIS
-            | MENOS
-            |
+mais_ou_menos_termo: MAIS termo
+            | MENOS termo
+            | termo
 ;
 
 termo: termo AND fator 
@@ -400,26 +391,22 @@ fator: variavel
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               fprintf(fp, "     CRCT %s\n", token); fflush(fp);
             }
-            | chamada_de_funcao
+            // | chamada_de_funcao
             | ABRE_PARENTESES expressao FECHA_PARENTESES
             | NOT fator
 ;
 
-chamada_de_procedimento:
-;
+// chamada_de_procedimento:
+// ;
 
-chamada_de_funcao:
-;
+// chamada_de_funcao:
+// ;
 
-desvio:
-;
+// desvio:
+// ;
 
-comando_composto: T_BEGIN comando comando_composto T_END
-            | PONTO_E_VIRGULA comando
-;
-
-comando_condicional:
-;
+// comando_condicional:
+// ;
 
 comando_repetitivo: WHILE 
             {
@@ -453,9 +440,6 @@ comando_repetitivo: WHILE
               
               geraCodigo(rotF->rotulo, "NADA");
             }
-;
-
-lista_de_expressao:
 ;
 
 leitura: READ ABRE_PARENTESES lista_leitura FECHA_PARENTESES
