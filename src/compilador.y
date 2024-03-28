@@ -31,6 +31,8 @@ pilhaSimbolos * l_elem;
 %token ABRE_CHAVE FECHA_CHAVE ABRE_COLCHETE FECHA_COLCHETE NUMERO DIVISAO
 %token READ WRITE TRUE FALSE
 
+%nonassoc LOWER_THAN_ELSE
+%nonassoc ELSE
 %%
 
 programa:
@@ -159,7 +161,7 @@ comando_sem_rotulo: comando_repetitivo
             | atribuicao 
             // | chamada_de_procedimento 
             | comando_composto
-            // | comando_condicional
+            | comando_condicional
             // | desvio
             | leitura
             | escrita
@@ -231,11 +233,11 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
               if(tipo1->tipo == tipo2->tipo){
                 // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
-                geraCodigo(NULL, "SOMA");
               }
               else
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
+              geraCodigo(NULL, "SOMA");
             }
             | mais_ou_menos_termo MENOS expressao_simples
             {
@@ -248,11 +250,11 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
               if(tipo1->tipo == tipo2->tipo){
                 // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
-                geraCodigo(NULL, "SUBI");
               }
               else
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
+              geraCodigo(NULL, "SUBT");
             }
             | mais_ou_menos_termo OR expressao_simples
             {
@@ -265,11 +267,11 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
               if(tipo1->tipo == tipo2->tipo){
                 // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
-                geraCodigo(NULL, "DISJ");
               }
               else
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
+              geraCodigo(NULL, "DISJ");
             }
             | mais_ou_menos_termo
 ;
@@ -293,6 +295,7 @@ termo: termo AND fator
               else
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
+              geraCodigo(NULL, "CONJ");
             }
             | termo DIV fator 
             {
@@ -308,6 +311,7 @@ termo: termo AND fator
               else
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
+              geraCodigo(NULL, "DIVI");
             }
             | termo MULTI fator
             {
@@ -323,21 +327,7 @@ termo: termo AND fator
               else
                 // se não for, é erro
                 imprimeErro("Erro de tipo");
-            }
-            | termo DIVISAO fator
-            {
-              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
-              no->tipo = tipo_int;
-              // desempilha dois
-              pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
-              pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são int
-              if(tipo1->tipo == tipo2->tipo)
-                // se for empilha int
-                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
-              else
-                // se não for, é erro
-                imprimeErro("Erro de tipo");
+              geraCodigo(NULL, "MULT");
             }
             | fator
 ;
@@ -421,8 +411,50 @@ fator: variavel
 // desvio:
 // ;
 
-// comando_condicional:
-// ;
+
+comando_condicional: if_then
+            {
+               pilhaRotulo * rotElse = queue_pop((queue_t**) &tabelaRotulo);
+               geraCodigo(rotElse->rotulo, "NADA");
+            }
+            cond_else
+            {
+               pilhaRotulo * rotFim = queue_pop((queue_t**) &tabelaRotulo);
+               geraCodigo(rotFim->rotulo, "NADA");
+            }
+;
+
+cond_else: ELSE
+           comando_sem_rotulo
+           | %prec LOWER_THAN_ELSE
+;
+
+if_then: IF expressao
+            {
+              char* rotuloElse = geraRotulo(RotID);
+              RotID++;
+              char* rotuloFim = geraRotulo(RotID);
+              RotID++;
+
+              pilhaRotulo * noElse = calloc(1, sizeof(pilhaRotulo));
+              noElse->rotulo = rotuloElse;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noElse);
+              
+              pilhaRotulo * noFim = calloc(1, sizeof(pilhaRotulo));
+              noFim->rotulo = rotuloFim;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noFim);
+
+              fprintf(fp, "     DSVF %s\n", rotuloElse); fflush(fp);
+            }
+            THEN comando_sem_rotulo
+            {
+              pilhaRotulo * rotFim = queue_pop((queue_t**) &tabelaRotulo);
+              pilhaRotulo * rotElse = queue_pop((queue_t**) &tabelaRotulo);
+              fprintf(fp, "     DSVS %s\n", rotFim->rotulo); fflush(fp);
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) rotFim);
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) rotElse);
+            }
+;
 
 comando_repetitivo: WHILE 
             {

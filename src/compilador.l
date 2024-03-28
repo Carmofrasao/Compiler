@@ -191,12 +191,6 @@ end { simbolo = simb_end;
           return MULTI;
  }
 
-\/  { simbolo = simb_divisao;
-          strncpy (token, yytext, TAM_TOKEN);
-          IMPRIME("divisao    ");
-          return DIVISAO;
- }
-
 label  { simbolo = simb_label;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME("label      ");
