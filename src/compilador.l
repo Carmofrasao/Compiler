@@ -293,6 +293,18 @@ write  { simbolo = simb_write;
           return WRITE;
  }
 
+true  { simbolo = simb_true;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME("true       ");
+          return TRUE;
+ }
+
+false  { simbolo = simb_false;
+          strncpy (token, yytext, TAM_TOKEN);
+          IMPRIME("false      ");
+          return FALSE;
+ }
+
 {numero}  { simbolo = simb_numero;
           strncpy (token, yytext, TAM_TOKEN);
           IMPRIME("numero     ");

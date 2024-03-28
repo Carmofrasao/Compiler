@@ -29,7 +29,7 @@ pilhaSimbolos * l_elem;
 %token T_BEGIN T_END VAR IDENT ATRIBUICAO THEN WHILE MAIOR_OU_IGUAL MAIS
 %token ARRAY TYPE LABEL PROCEDURE GOTO IF ELSE DO OR DIV AND NOT MENOS MULTI
 %token ABRE_CHAVE FECHA_CHAVE ABRE_COLCHETE FECHA_COLCHETE NUMERO DIVISAO
-%token READ WRITE
+%token READ WRITE TRUE FALSE
 
 %%
 
@@ -390,6 +390,22 @@ fator: variavel
               no->tipo = tipo_int;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               fprintf(fp, "     CRCT %s\n", token); fflush(fp);
+            }
+            | TRUE 
+            {
+              // empilhar bool
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_bool;
+              queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              fprintf(fp, "     CRCT 1\n"); fflush(fp);
+            }
+            | FALSE 
+            {
+              // empilhar bool
+              pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+              no->tipo = tipo_bool;
+              queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              fprintf(fp, "     CRCT 0\n"); fflush(fp);
             }
             // | chamada_de_funcao
             | ABRE_PARENTESES expressao FECHA_PARENTESES
