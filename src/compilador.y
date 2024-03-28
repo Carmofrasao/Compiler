@@ -107,28 +107,28 @@ tipo: IDENT
 
 lista_id_var: lista_id_var VIRGULA IDENT
             { 
-                pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
-                no->identificador = calloc(1, TAM_TOKEN);
-                strncpy(no->identificador, token, TAM_TOKEN);
-                no->categoria = variavel_simples;
-                no->nivel_lexico = nivel_lexico;
-                no->deslocamento = desloc;
-                desloc++;
-                num_vars++;
-                queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
+              pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
+              no->identificador = calloc(1, TAM_TOKEN);
+              strncpy(no->identificador, token, TAM_TOKEN);
+              no->categoria = variavel_simples;
+              no->nivel_lexico = nivel_lexico;
+              no->deslocamento = desloc;
+              desloc++;
+              num_vars++;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
             }
             | IDENT 
             { 
               
-                pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
-                no->identificador = calloc(1, TAM_TOKEN);
-                strncpy(no->identificador, token, TAM_TOKEN);
-                no->categoria = variavel_simples;
-                no->nivel_lexico = nivel_lexico;
-                no->deslocamento = desloc;
-                desloc++;
-                num_vars++;
-                queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
+              pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
+              no->identificador = calloc(1, TAM_TOKEN);
+              strncpy(no->identificador, token, TAM_TOKEN);
+              no->categoria = variavel_simples;
+              no->nivel_lexico = nivel_lexico;
+              no->deslocamento = desloc;
+              desloc++;
+              num_vars++;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
             }
 ;
 
