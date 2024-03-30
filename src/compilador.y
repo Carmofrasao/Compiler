@@ -47,7 +47,18 @@ programa:
             }
 ;
 
-bloco: parte_declara_vars comando_composto
+bloco: parte_declara
+            {
+              char* rotuloMain = geraRotulo(RotID);
+              RotID++;
+              
+              pilhaRotulo * noMain = calloc(1, sizeof(pilhaRotulo));
+              noMain->rotulo = rotuloMain;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noMain);
+
+              fprintf(fp, "     DSVS %s\n", rotuloMain); fflush(fp);
+            }
+            comando_composto
             {
               if (tabelaSimbolo != NULL) {
                 int count = 0;
@@ -64,11 +75,32 @@ bloco: parte_declara_vars comando_composto
             }
 ;
 
-parte_declara_vars: var
-;
-
-var: VAR declara_vars
+parte_declara: 
+            //rotulo parte_declara
+            | var parte_declara
+//            | sub_rotina parte_declara
             |
+;
+//=========================================================
+//sub_rotina: declara_proc sub_rotina
+//;
+
+//declara_proc: declara_procedimento PONTO_E_VIRGULA
+            //| declara_funcao PONTO_E_VIRGULA 
+//;
+
+//declara_procedimento: PROCEDURE identificador
+//            param_formais PONTO_E_VIRGULA bloco
+//;
+
+//param_formais: parametros_formais
+//            |
+//;
+
+//parametros_formais:
+//;
+//==========================================================
+var: VAR declara_vars
 ;
 
 declara_vars: declara_vars declara_var
@@ -119,7 +151,6 @@ lista_id_var: lista_id_var VIRGULA IDENT
             }
             | IDENT 
             { 
-              
               pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
               no->identificador = calloc(1, TAM_TOKEN);
               strncpy(no->identificador, token, TAM_TOKEN);
