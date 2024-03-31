@@ -47,7 +47,7 @@ programa:
             }
 ;
 
-bloco: parte_declara
+bloco: parte_declara_var
             {
               char* rotuloMain = geraRotulo(RotID);
               RotID++;
@@ -57,6 +57,11 @@ bloco: parte_declara
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) noMain);
 
               fprintf(fp, "     DSVS %s\n", rotuloMain); fflush(fp);
+            }
+            parte_declara
+            {
+              pilhaRotulo * rotulo = queue_pop((queue_t**) &tabelaRotulo);
+              geraCodigo(rotulo->rotulo, "NADA");  
             }
             comando_composto
             {
@@ -75,30 +80,31 @@ bloco: parte_declara
             }
 ;
 
-parte_declara: 
-            //rotulo parte_declara
-            | var parte_declara
-//            | sub_rotina parte_declara
+parte_declara_var: var
+;
+
+parte_declara: //rotulo
+            | sub_rotina
             |
 ;
 //=========================================================
-//sub_rotina: declara_proc sub_rotina
-//;
+sub_rotina: declara_proc sub_rotina
+;
 
-//declara_proc: declara_procedimento PONTO_E_VIRGULA
+declara_proc: declara_procedimento PONTO_E_VIRGULA
             //| declara_funcao PONTO_E_VIRGULA 
-//;
+;
 
-//declara_procedimento: PROCEDURE identificador
-//            param_formais PONTO_E_VIRGULA bloco
-//;
+declara_procedimento: PROCEDURE IDENT
+            param_formais PONTO_E_VIRGULA bloco
+;
 
-//param_formais: parametros_formais
-//            |
-//;
+param_formais: parametros_formais
+            |
+;
 
-//parametros_formais:
-//;
+parametros_formais:
+;
 //==========================================================
 var: VAR declara_vars
 ;
