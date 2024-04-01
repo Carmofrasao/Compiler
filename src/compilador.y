@@ -157,7 +157,7 @@ param_formais: parametros_formais
             |
 ;
 
-parametros_formais:
+parametros_formais: ABRE_PARENTESES FECHA_PARENTESES
 ;
 //==========================================================
 var: VAR declara_vars
@@ -248,9 +248,8 @@ numero: NUMERO
 //            }
 ;
 
-comando_sem_rotulo: comando_repetitivo
-            | atribuicao 
-            // | chamada_de_procedimento 
+comando_sem_rotulo: atribuicao_ou_chamada_de_procedimento
+            | comando_repetitivo
             | comando_composto
             | comando_condicional
             // | desvio
@@ -258,13 +257,27 @@ comando_sem_rotulo: comando_repetitivo
             | escrita
 ;
 
-atribuicao: variavel
-            {
-              pilhaSimbolos *no = tabelaSimbolo->prev;
-              while(strcmp(no->identificador, token) && no != tabelaSimbolo)
-                no = no->prev;
+atribuicao_ou_chamada_de_procedimento:
+            IDENT
+            atribuicao_ou_chamada_de_procedimento_depois_ident
+;
 
-              if(strcmp(no->identificador, token) != 0)
+
+atribuicao_ou_chamada_de_procedimento_depois_ident:
+            atribuicao
+            | chamada_procedimento_funcao_sem_argumentos
+            | chamada_procedimento_funcao_com_argumentos
+;
+
+atribuicao: {
+              pilhaSimbolos *no = NULL;
+              if (tabelaSimbolo != NULL) {
+                no = tabelaSimbolo->prev;
+                while (strcmp(no->identificador, token) != 0 && no != tabelaSimbolo)
+                  no = no->prev;
+              }
+
+              if(no == NULL || strcmp(no->identificador, token) != 0)
                 imprimeErro("Variavel nao encontrada.");
               
               if(no->categoria != variavel_simples &&
@@ -276,7 +289,9 @@ atribuicao: variavel
                 l_elem = no;
               else
                 imprimeErro("l_elemet nao e NULL");
-            } ATRIBUICAO expressao 
+            }
+            ATRIBUICAO
+            expressao
             {
               // compara tipo do l_elem
               // com o tipo do topo da pilha
@@ -290,7 +305,22 @@ atribuicao: variavel
             }
 ;
 
-variavel: IDENT
+chamada_procedimento_funcao_sem_argumentos:
+            {
+              // chamar
+            }
+;
+
+chamada_procedimento_funcao_com_argumentos:
+            {
+              // memorizar a chamada
+            }
+            ABRE_PARENTESES
+            lista_de_expressoes
+            FECHA_PARENTESES
+            {
+              // chamar
+            }
 ;
 
 expressao: expressao_simples relacao expressao
@@ -449,7 +479,7 @@ relacao: IGUAL
             }
 ;
 
-fator: variavel
+fator: IDENT
             {
               // tem que empilhar a variavel!!!!
               pilhaSimbolos *no = tabelaSimbolo->prev;
@@ -493,8 +523,9 @@ fator: variavel
             | NOT fator
 ;
 
-// chamada_de_procedimento:
-// ;
+lista_de_expressoes: expressao VIRGULA lista_de_expressoes
+            | expressao
+;
 
 // chamada_de_funcao:
 // ;

@@ -71,13 +71,13 @@ end { simbolo = simb_end;
  }
 
 := { simbolo = simb_atribuicao;
-          strncpy (token, yytext, TAM_TOKEN);
+          // strncpy (token, yytext, TAM_TOKEN);
           IMPRIME("atribuicao ");
           return ATRIBUICAO;
  }
 
 \; { simbolo = simb_ponto_e_virgula;
-          strncpy (token, yytext, TAM_TOKEN);
+          // strncpy (token, yytext, TAM_TOKEN);
           IMPRIME("pt_virgula ");
           return PONTO_E_VIRGULA;
  }
