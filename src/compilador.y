@@ -13,6 +13,7 @@
 pilhaSimbolos* tabelaSimbolo;
 pilhaTipos* tabelaTipos;
 pilhaRotulo* tabelaRotulo;
+pilhaSimbolos* tabelaProc;
 
 int num_vars;
 int nivel_lexico;
@@ -38,6 +39,26 @@ pilhaSimbolos * l_elem;
 programa:
             {
               geraCodigo (NULL, "INPP");
+              
+              char* rotuloMain = geraRotulo(RotID);
+              RotID++;
+              
+              pilhaRotulo * noMain = calloc(1, sizeof(pilhaRotulo));
+              noMain->rotulo = rotuloMain;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noMain);
+              
+              pilhaSimbolos * main = calloc(1, sizeof(pilhaSimbolos));
+              main->prev = NULL;
+              main->next = NULL;
+              main->rotulo = rotuloMain;
+              main->identificador = calloc(1, TAM_TOKEN);
+              main->identificador = "main";
+              main->nivel_lexico = nivel_lexico;
+              main->categoria = procedimento;
+              main->num_param = 0;
+              
+              queue_append((queue_t**) &tabelaProc, (queue_t*) main);
+              
             }
             PROGRAM IDENT
             ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
@@ -49,14 +70,9 @@ programa:
 
 bloco: parte_declara_var
             {
-              char* rotuloMain = geraRotulo(RotID);
-              RotID++;
-              
-              pilhaRotulo * noMain = calloc(1, sizeof(pilhaRotulo));
-              noMain->rotulo = rotuloMain;
-              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noMain);
-
-              fprintf(fp, "     DSVS %s\n", rotuloMain); fflush(fp);
+              pilhaRotulo * rotulo = queue_pop((queue_t**) &tabelaRotulo);
+              fprintf(fp, "     DSVS %s\n", rotulo->rotulo); fflush(fp);
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) rotulo);
             }
             parte_declara
             {
@@ -77,6 +93,8 @@ bloco: parte_declara_var
                   
                 fprintf(fp, "     DMEM %d\n", count); fflush(fp);
               }
+              pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaProc);
+              fprintf(fp, "     RTPR %d,%d\n", nivel_lexico, proc->num_param); fflush(fp);
             }
 ;
 
@@ -85,10 +103,10 @@ parte_declara_var: var
 
 parte_declara: //rotulo
             | sub_rotina
-            |
+//            |
 ;
 //=========================================================
-sub_rotina: declara_proc sub_rotina
+sub_rotina: declara_proc sub_rotina | declara_proc
 ;
 
 declara_proc: declara_procedimento PONTO_E_VIRGULA
@@ -96,7 +114,43 @@ declara_proc: declara_procedimento PONTO_E_VIRGULA
 ;
 
 declara_procedimento: PROCEDURE IDENT
+            {
+              nivel_lexico++;
+              desloc = 0;
+
+              char* rotuloI = geraRotulo(RotID);
+              RotID++;
+              
+              char* rotuloF = geraRotulo(RotID);
+              RotID++;
+
+              char * comando = calloc(10, sizeof(char));
+              sprintf(comando, "ENPR %d", nivel_lexico);
+              geraCodigo(rotuloI, comando);
+
+              pilhaRotulo * noI = calloc(1, sizeof(pilhaRotulo));
+              noI->rotulo = rotuloI;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noI);
+
+              pilhaRotulo * noF = calloc(1, sizeof(pilhaRotulo));
+              noF->rotulo = rotuloF;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noF);
+
+              pilhaSimbolos * proc = calloc(1, sizeof(pilhaSimbolos));
+              proc->prev = NULL;
+              proc->next = NULL;
+              proc->rotulo = rotuloI;
+              proc->identificador = calloc(1, TAM_TOKEN);
+              proc->identificador = token;
+              proc->nivel_lexico = nivel_lexico;
+              proc->categoria = procedimento;
+              
+              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
+            }
             param_formais PONTO_E_VIRGULA bloco
+            {
+              nivel_lexico--;
+            }
 ;
 
 param_formais: parametros_formais
@@ -586,10 +640,12 @@ int main (int argc, char** argv) {
  * ------------------------------------------------------------------- */
 
   tabelaSimbolo = NULL;
+  tabelaProc = NULL;
   tabelaTipos = NULL;
   tabelaRotulo = NULL;
   l_elem = NULL;
   RotID = 0;
+  nivel_lexico = 0;
 
   yyin=fp;
   yyparse();

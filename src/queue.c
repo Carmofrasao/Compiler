@@ -205,6 +205,8 @@ void *queue_pop (queue_t **queue){
   if ((*queue)->next == *queue && (*queue)->prev == *queue){
     queue_t * aux = *queue;
     *queue = NULL;
+    aux->next = NULL;
+    aux->prev = NULL;
     return aux;
   }
 
