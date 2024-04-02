@@ -76,6 +76,7 @@ bloco: parte_declara_var
             }
             parte_declara
             {
+              // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!!!!!!!!!!!!!!!!!
               pilhaRotulo * rotulo = queue_pop((queue_t**) &tabelaRotulo);
               geraCodigo(rotulo->rotulo, "NADA");  
             }
@@ -98,7 +99,7 @@ bloco: parte_declara_var
             }
 ;
 
-parte_declara_var: var
+parte_declara_var: var |
 ;
 
 parte_declara: //rotulo
@@ -115,39 +116,46 @@ declara_proc: declara_procedimento PONTO_E_VIRGULA
 
 declara_procedimento: PROCEDURE IDENT
             {
+              char* rotuloProc = geraRotulo(RotID);
+              RotID++;
+
+              pilhaSimbolos * simb = calloc(1, sizeof(pilhaSimbolos));
+              simb->prev = NULL;
+              simb->next = NULL;
+              simb->rotulo = rotuloProc;
+              simb->identificador = calloc(1, TAM_TOKEN);
+              strncpy(simb->identificador, token, TAM_TOKEN);
+              simb->nivel_lexico = nivel_lexico;
+              simb->categoria = procedimento;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) simb);
+
               nivel_lexico++;
               desloc = 0;
-
-              char* rotuloI = geraRotulo(RotID);
-              RotID++;
               
-              char* rotuloF = geraRotulo(RotID);
+              char* rotuloPularAninhado = geraRotulo(RotID);
               RotID++;
 
               char * comando = calloc(10, sizeof(char));
               sprintf(comando, "ENPR %d", nivel_lexico);
-              geraCodigo(rotuloI, comando);
+              geraCodigo(rotuloProc, comando);
 
-              pilhaRotulo * noI = calloc(1, sizeof(pilhaRotulo));
-              noI->rotulo = rotuloI;
-              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noI);
-
-              pilhaRotulo * noF = calloc(1, sizeof(pilhaRotulo));
-              noF->rotulo = rotuloF;
-              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noF);
+              pilhaRotulo * noPularAninhado = calloc(1, sizeof(pilhaRotulo));
+              noPularAninhado->rotulo = rotuloPularAninhado;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noPularAninhado);
 
               pilhaSimbolos * proc = calloc(1, sizeof(pilhaSimbolos));
               proc->prev = NULL;
               proc->next = NULL;
-              proc->rotulo = rotuloI;
+              proc->rotulo = rotuloProc;
               proc->identificador = calloc(1, TAM_TOKEN);
-              proc->identificador = token;
+              strncpy(proc->identificador, token, TAM_TOKEN);
               proc->nivel_lexico = nivel_lexico;
               proc->categoria = procedimento;
               
               queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
             }
-            param_formais PONTO_E_VIRGULA bloco
+            param_formais PONTO_E_VIRGULA
+            bloco
             {
               nivel_lexico--;
             }
@@ -279,7 +287,7 @@ atribuicao: {
 
               if(no == NULL || strcmp(no->identificador, token) != 0)
                 imprimeErro("Variavel nao encontrada.");
-              
+
               if(no->categoria != variavel_simples &&
                  no->categoria != parametro_formal &&
                  no->categoria != funcao)
@@ -308,6 +316,22 @@ atribuicao: {
 chamada_procedimento_funcao_sem_argumentos:
             {
               // chamar
+              pilhaSimbolos *no = NULL;
+              if (tabelaSimbolo != NULL) {
+                no = tabelaSimbolo->prev;
+                fprintf(stderr, "pesquisando %s\n", no->identificador);
+                while (strcmp(no->identificador, token) != 0 && no != tabelaSimbolo) {
+                  no = no->prev;
+                  }
+              }
+
+              if(no == NULL || strcmp(no->identificador, token) != 0)
+                imprimeErro("Procedimento nao encontrado.");
+              
+              if(no->categoria != procedimento)
+                imprimeErro("Erro de atribuição");
+              
+              fprintf(fp, "     CHPR %s,%d\n", no->rotulo, nivel_lexico); fflush(fp);
             }
 ;
 
