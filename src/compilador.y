@@ -13,7 +13,6 @@
 pilhaSimbolos* tabelaSimbolo;
 pilhaTipos* tabelaTipos;
 pilhaRotulo* tabelaRotulo;
-pilhaSimbolos* tabelaProc;
 
 int num_vars;
 int nivel_lexico;
@@ -22,6 +21,17 @@ int RotID;
 char compara[5];
 
 pilhaSimbolos * l_elem;
+pilhaSimbolos * procAtual;
+
+// imprime na tela um elemento da fila (chamada pela função queue_print)
+void print_elem (void *ptr) {
+   pilhaSimbolos *elem = ptr ;
+
+   if (!elem)
+      return ;
+
+   printf ("%s", elem->identificador) ;
+}
 
 %}
 
@@ -56,9 +66,6 @@ programa:
               main->nivel_lexico = nivel_lexico;
               main->categoria = procedimento;
               main->num_param = 0;
-              
-              queue_append((queue_t**) &tabelaProc, (queue_t*) main);
-              
             }
             PROGRAM IDENT
             ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
@@ -76,7 +83,6 @@ bloco: parte_declara_var
             }
             parte_declara
             {
-              // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!!!!!!!!!!!!!!!!!
               pilhaRotulo * rotulo = queue_pop((queue_t**) &tabelaRotulo);
               geraCodigo(rotulo->rotulo, "NADA");  
             }
@@ -85,17 +91,23 @@ bloco: parte_declara_var
               if (tabelaSimbolo != NULL) {
                 int count = 0;
                 pilhaSimbolos *fim = tabelaSimbolo->prev;
+                queue_print("ANTES DMEM", (queue_t*) tabelaSimbolo, print_elem);
                 while(tabelaSimbolo && fim->nivel_lexico == nivel_lexico) {
                   fim = fim->prev;
                   pilhaSimbolos * no = queue_pop((queue_t**) &tabelaSimbolo);
                   free(no);
-                  count++;
+                  if (no->categoria == variavel_simples)
+                    count++;
                 }
-                  
+                queue_print("DEPOIS DMEM", (queue_t*) tabelaSimbolo, print_elem);
+                fprintf(stderr, "contou %d\n", count);
                 fprintf(fp, "     DMEM %d\n", count); fflush(fp);
               }
-              pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaProc);
-              fprintf(fp, "     RTPR %d,%d\n", nivel_lexico, proc->num_param); fflush(fp);
+              if (tabelaSimbolo != NULL) {
+                pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaSimbolo);
+                fprintf(fp, "     RTPR %d,%d\n", nivel_lexico, proc->num_param); fflush(fp);
+                queue_append((queue_t**) &tabelaSimbolo, (queue_t*) proc);
+              }
             }
 ;
 
@@ -106,7 +118,7 @@ parte_declara: //rotulo
             | sub_rotina
 //            |
 ;
-//=========================================================
+
 sub_rotina: declara_proc sub_rotina | declara_proc
 ;
 
@@ -151,13 +163,13 @@ declara_procedimento: PROCEDURE IDENT
               strncpy(proc->identificador, token, TAM_TOKEN);
               proc->nivel_lexico = nivel_lexico;
               proc->categoria = procedimento;
-              
-              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
             }
             param_formais PONTO_E_VIRGULA
             bloco
             {
+              l_elem = queue_pop((queue_t**) &tabelaSimbolo);
               nivel_lexico--;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) l_elem);
             }
 ;
 
@@ -165,9 +177,67 @@ param_formais: parametros_formais
             |
 ;
 
-parametros_formais: ABRE_PARENTESES FECHA_PARENTESES
+parametros_formais: ABRE_PARENTESES sec_par FECHA_PARENTESES
 ;
-//==========================================================
+
+//========================================================================
+sec_par: PONTO_E_VIRGULA secao_de_parametros_formais sec_par
+            | secao_de_parametros_formais
+;
+
+secao_de_parametros_formais: VAR lista_de_identificadores
+            { 
+              int aux = 0;
+              pilhaSimbolos *proc = tabelaSimbolo->prev;
+              pilhaSimbolos *p = tabelaSimbolo->prev;
+              while(aux < num_vars) {
+                proc = proc->prev;
+                p = p->prev;
+                aux++;
+              }
+              proc->num_param = num_vars;
+              aux = 0;
+              p = p->next;
+              while(aux < num_vars){
+                vetParam * param = calloc(1, sizeof(vetParam));
+                param->prev = NULL;
+                param->next = NULL;
+                param->tipo = p->tipov;
+                param->passa = referencia;
+                queue_append((queue_t**) &proc->parametros, (queue_t*) param);
+                // ADD DESLOCAMENTO POR REF
+                p = p->next;
+                aux++;
+              }
+            }
+            | lista_de_identificadores
+            { 
+              int aux = 0;
+              pilhaSimbolos *proc = tabelaSimbolo->prev;
+              pilhaSimbolos *p = tabelaSimbolo->prev;
+              while(aux < num_vars) {
+                proc = proc->prev;
+                p = p->prev;
+                aux++;
+              }
+              proc->num_param = num_vars;
+              aux = 0;
+              p = p->next;
+              while(aux < num_vars){
+                vetParam * param = calloc(1, sizeof(vetParam));
+                param->prev = NULL;
+                param->next = NULL;
+                param->tipo = p->tipov;
+                param->passa = valor;
+                queue_append((queue_t**) &proc->parametros, (queue_t*) param);
+                p->deslocamento = -4 - num_vars + 1 + aux;
+                p = p->next;
+                aux++;
+              }
+            }
+;
+//========================================================================
+
 var: VAR declara_vars
 ;
 
@@ -212,8 +282,7 @@ lista_id_var: lista_id_var VIRGULA IDENT
               strncpy(no->identificador, token, TAM_TOKEN);
               no->categoria = variavel_simples;
               no->nivel_lexico = nivel_lexico;
-              no->deslocamento = desloc;
-              desloc++;
+              no->deslocamento = num_vars;
               num_vars++;
               queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
             }
@@ -224,8 +293,7 @@ lista_id_var: lista_id_var VIRGULA IDENT
               strncpy(no->identificador, token, TAM_TOKEN);
               no->categoria = variavel_simples;
               no->nivel_lexico = nivel_lexico;
-              no->deslocamento = desloc;
-              desloc++;
+              no->deslocamento = num_vars;
               num_vars++;
               queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
             }
@@ -234,6 +302,41 @@ lista_id_var: lista_id_var VIRGULA IDENT
 lista_idents: lista_idents VIRGULA IDENT
             | IDENT
 ;
+
+//========================================================================
+lista_id_pf: lista_id_pf VIRGULA IDENT
+            { 
+              pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
+              no->identificador = calloc(1, TAM_TOKEN);
+              strncpy(no->identificador, token, TAM_TOKEN);
+              no->categoria = parametro_formal;
+              no->nivel_lexico = nivel_lexico;
+              no->deslocamento = desloc;
+              desloc++;
+              num_vars++;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
+            }
+            | IDENT 
+            { 
+              pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
+              no->identificador = calloc(1, TAM_TOKEN);
+              strncpy(no->identificador, token, TAM_TOKEN);
+              no->categoria = parametro_formal;
+              no->nivel_lexico = nivel_lexico;
+              no->deslocamento = desloc;
+              desloc++;
+              num_vars++;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
+            }
+;
+
+lista_de_identificadores:
+            { 
+              num_vars = 0; 
+            }
+            lista_id_pf DOIS_PONTOS tipo
+;
+//========================================================================
 
 comando_composto: T_BEGIN comandos T_END
 ;
@@ -251,9 +354,6 @@ rotulo: numero DOIS_PONTOS
 ;
 
 numero: NUMERO
-//            {
-// Caso o goto seja implementado, havera codigo aqui
-//            }
 ;
 
 comando_sem_rotulo: atribuicao_ou_chamada_de_procedimento
@@ -301,8 +401,6 @@ atribuicao: {
             ATRIBUICAO
             expressao
             {
-              // compara tipo do l_elem
-              // com o tipo do topo da pilha
               pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
               if(l_elem->tipov == tipo_expressao->tipo){
                 fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
@@ -319,7 +417,6 @@ chamada_procedimento_funcao_sem_argumentos:
               pilhaSimbolos *no = NULL;
               if (tabelaSimbolo != NULL) {
                 no = tabelaSimbolo->prev;
-                fprintf(stderr, "pesquisando %s\n", no->identificador);
                 while (strcmp(no->identificador, token) != 0 && no != tabelaSimbolo) {
                   no = no->prev;
                   }
@@ -335,33 +432,48 @@ chamada_procedimento_funcao_sem_argumentos:
             }
 ;
 
+//========================================================================
+// TA PRONTO??!!
 chamada_procedimento_funcao_com_argumentos:
             {
               // memorizar a chamada
+              pilhaSimbolos* no = NULL;
+              if (tabelaSimbolo != NULL) {
+                no = tabelaSimbolo->prev;
+                while (strcmp(no->identificador, token) != 0 && no != tabelaSimbolo) {
+                  no = no->prev;
+                }
+              }
+
+              if(no == NULL || strcmp(no->identificador, token) != 0)
+                imprimeErro("Procedimento nao encontrado.");
+              
+              if(no->categoria != procedimento)
+                imprimeErro("Erro de atribuição");
+              
+              procAtual = no;
             }
             ABRE_PARENTESES
             lista_de_expressoes
             FECHA_PARENTESES
             {
               // chamar
+              fprintf(fp, "     CHPR %s,%d\n", procAtual->rotulo, nivel_lexico); fflush(fp);
             }
 ;
+//========================================================================
 
 expressao: expressao_simples relacao expressao
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são bool
               if(tipo1->tipo == tipo2->tipo){
-                // se for empilha bool
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
                 geraCodigo(NULL, compara);
               }
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
             }
             | expressao_simples
@@ -371,16 +483,12 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são int
               if(tipo1->tipo == tipo2->tipo){
-                // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               }
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "SOMA");
             }
@@ -388,16 +496,12 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são int
               if(tipo1->tipo == tipo2->tipo){
-                // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               }
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "SUBT");
             }
@@ -405,16 +509,12 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são int
               if(tipo1->tipo == tipo2->tipo){
-                // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               }
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "DISJ");
             }
@@ -430,15 +530,11 @@ termo: termo AND fator
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são booleanos
               if(tipo1->tipo == tipo2->tipo)
-                // se for empilha boolean
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "CONJ");
             }
@@ -446,15 +542,11 @@ termo: termo AND fator
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são int
               if(tipo1->tipo == tipo2->tipo)
-                // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "DIVI");
             }
@@ -462,15 +554,11 @@ termo: termo AND fator
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
-              // desempilha dois
               pilhaTipos *tipo1 = queue_pop((queue_t**) &tabelaTipos);
               pilhaTipos *tipo2 = queue_pop((queue_t**) &tabelaTipos); 
-              // verifica se os dois são int
               if(tipo1->tipo == tipo2->tipo)
-                // se for empilha int
                 queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               else
-                // se não for, é erro
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "MULT");
             }
@@ -505,7 +593,6 @@ relacao: IGUAL
 
 fator: IDENT
             {
-              // tem que empilhar a variavel!!!!
               pilhaSimbolos *no = tabelaSimbolo->prev;
               while(strcmp(no->identificador, token) && no != tabelaSimbolo)
                 no = no->prev;
@@ -520,7 +607,6 @@ fator: IDENT
             }
             | numero 
             {
-              // empilhar inteiro
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
@@ -528,7 +614,6 @@ fator: IDENT
             }
             | TRUE 
             {
-              // empilhar bool
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
@@ -536,7 +621,6 @@ fator: IDENT
             }
             | FALSE 
             {
-              // empilhar bool
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
@@ -695,10 +779,10 @@ int main (int argc, char** argv) {
  * ------------------------------------------------------------------- */
 
   tabelaSimbolo = NULL;
-  tabelaProc = NULL;
   tabelaTipos = NULL;
   tabelaRotulo = NULL;
   l_elem = NULL;
+  procAtual = NULL;
   RotID = 0;
   nivel_lexico = 0;
 

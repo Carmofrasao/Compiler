@@ -18,6 +18,11 @@
 
 #define TAM_TOKEN 16
 
+typedef enum passagem {
+  valor,
+  referencia
+} passagem;
+
 typedef enum tipo_variavel {
   tipo_int,
   tipo_bool
@@ -42,6 +47,13 @@ typedef enum simbolos {
   simb_abre_colchete, simb_fecha_colchete, simb_write, simb_read,
 } simbolos;
 
+typedef struct vetParam {
+  struct vetParam *prev; 
+  struct vetParam *next;
+  tipo_variavel tipo;
+  passagem passa;
+} vetParam;
+
 //tabela de símbolos
 typedef struct pilhaSimbolos {
   struct pilhaSimbolos *prev; 
@@ -53,6 +65,7 @@ typedef struct pilhaSimbolos {
   int nivel_lexico;
   int deslocamento;
   int num_param;
+  vetParam *parametros;
 } pilhaSimbolos;
 
 typedef struct pilhaTipos {
