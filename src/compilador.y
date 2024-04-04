@@ -1,7 +1,3 @@
-// Testar se funciona corretamente o empilhamento de par�metros
-// passados por valor ou por refer�ncia.
-
-
 %{
 #include <stdio.h>
 #include <ctype.h>
@@ -13,6 +9,7 @@
 pilhaSimbolos* tabelaSimbolo;
 pilhaTipos* tabelaTipos;
 pilhaRotulo* tabelaRotulo;
+pilhaSimbolos* tabelaProc;
 
 int num_vars;
 int nivel_lexico;
@@ -66,6 +63,8 @@ programa:
               main->nivel_lexico = nivel_lexico;
               main->categoria = procedimento;
               main->num_param = 0;
+
+              queue_append((queue_t**) &tabelaProc, (queue_t*) main);
             }
             PROGRAM IDENT
             ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
@@ -91,7 +90,7 @@ bloco: parte_declara_var
               if (tabelaSimbolo != NULL) {
                 int count = 0;
                 pilhaSimbolos *fim = tabelaSimbolo->prev;
-                queue_print("ANTES DMEM", (queue_t*) tabelaSimbolo, print_elem);
+
                 while(tabelaSimbolo && fim->nivel_lexico == nivel_lexico) {
                   fim = fim->prev;
                   pilhaSimbolos * no = queue_pop((queue_t**) &tabelaSimbolo);
@@ -99,10 +98,9 @@ bloco: parte_declara_var
                   if (no->categoria == variavel_simples)
                     count++;
                 }
-                queue_print("DEPOIS DMEM", (queue_t*) tabelaSimbolo, print_elem);
-                fprintf(stderr, "contou %d\n", count);
                 fprintf(fp, "     DMEM %d\n", count); fflush(fp);
               }
+              pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaProc);
               if (tabelaSimbolo != NULL) {
                 pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaSimbolo);
                 fprintf(fp, "     RTPR %d,%d\n", nivel_lexico, proc->num_param); fflush(fp);
@@ -163,6 +161,8 @@ declara_procedimento: PROCEDURE IDENT
               strncpy(proc->identificador, token, TAM_TOKEN);
               proc->nivel_lexico = nivel_lexico;
               proc->categoria = procedimento;
+
+              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
             }
             param_formais PONTO_E_VIRGULA
             bloco
@@ -180,7 +180,6 @@ param_formais: parametros_formais
 parametros_formais: ABRE_PARENTESES sec_par FECHA_PARENTESES
 ;
 
-//========================================================================
 sec_par: PONTO_E_VIRGULA secao_de_parametros_formais sec_par
             | secao_de_parametros_formais
 ;
@@ -236,7 +235,6 @@ secao_de_parametros_formais: VAR lista_de_identificadores
               }
             }
 ;
-//========================================================================
 
 var: VAR declara_vars
 ;
@@ -303,7 +301,6 @@ lista_idents: lista_idents VIRGULA IDENT
             | IDENT
 ;
 
-//========================================================================
 lista_id_pf: lista_id_pf VIRGULA IDENT
             { 
               pilhaSimbolos* no = calloc(1, sizeof(pilhaSimbolos));
@@ -336,7 +333,6 @@ lista_de_identificadores:
             }
             lista_id_pf DOIS_PONTOS tipo
 ;
-//========================================================================
 
 comando_composto: T_BEGIN comandos T_END
 ;
@@ -433,7 +429,7 @@ chamada_procedimento_funcao_sem_argumentos:
 ;
 
 //========================================================================
-// TA PRONTO??!!
+// Fazer pilha de chamada de proc
 chamada_procedimento_funcao_com_argumentos:
             {
               // memorizar a chamada
@@ -452,6 +448,7 @@ chamada_procedimento_funcao_com_argumentos:
                 imprimeErro("Erro de atribuição");
               
               procAtual = no;
+              queue_append((queue_t**) &tabelaProc, (queue_t*) no);
             }
             ABRE_PARENTESES
             lista_de_expressoes
@@ -781,6 +778,8 @@ int main (int argc, char** argv) {
   tabelaSimbolo = NULL;
   tabelaTipos = NULL;
   tabelaRotulo = NULL;
+  tabelaProc = NULL;
+
   l_elem = NULL;
   procAtual = NULL;
   RotID = 0;
