@@ -53,18 +53,6 @@ programa:
               pilhaRotulo * noMain = calloc(1, sizeof(pilhaRotulo));
               noMain->rotulo = rotuloMain;
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) noMain);
-              
-              pilhaSimbolos * main = calloc(1, sizeof(pilhaSimbolos));
-              main->prev = NULL;
-              main->next = NULL;
-              main->rotulo = rotuloMain;
-              main->identificador = calloc(1, TAM_TOKEN);
-              main->identificador = "main";
-              main->nivel_lexico = nivel_lexico;
-              main->categoria = procedimento;
-              main->num_param = 0;
-
-              queue_append((queue_t**) &tabelaProc, (queue_t*) main);
             }
             PROGRAM IDENT
             ABRE_PARENTESES lista_idents FECHA_PARENTESES PONTO_E_VIRGULA
@@ -204,7 +192,7 @@ secao_de_parametros_formais: VAR lista_de_identificadores
                 param->tipo = p->tipov;
                 param->passa = referencia;
                 queue_append((queue_t**) &proc->parametros, (queue_t*) param);
-                // ADD DESLOCAMENTO POR REF
+                p->deslocamento = -4 - num_vars + 1 + aux;
                 p = p->next;
                 aux++;
               }
@@ -428,8 +416,6 @@ chamada_procedimento_funcao_sem_argumentos:
             }
 ;
 
-//========================================================================
-// Fazer pilha de chamada de proc
 chamada_procedimento_funcao_com_argumentos:
             {
               // memorizar a chamada
@@ -446,19 +432,30 @@ chamada_procedimento_funcao_com_argumentos:
               
               if(no->categoria != procedimento)
                 imprimeErro("Erro de atribuição");
-              
-              procAtual = no;
-              queue_append((queue_t**) &tabelaProc, (queue_t*) no);
+
+              pilhaSimbolos * proc = calloc(1, sizeof(pilhaSimbolos));
+              proc->prev = NULL;
+              proc->next = NULL;
+              proc->rotulo = calloc(4, sizeof(char));
+              strcpy(proc->rotulo, no->rotulo);
+              proc->identificador = calloc(1, TAM_TOKEN);
+              strcpy(proc->identificador, no->identificador);
+              proc->nivel_lexico = nivel_lexico;
+              proc->categoria = procedimento;
+              proc->num_param = 0;
+
+              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
             }
             ABRE_PARENTESES
             lista_de_expressoes
             FECHA_PARENTESES
             {
               // chamar
-              fprintf(fp, "     CHPR %s,%d\n", procAtual->rotulo, nivel_lexico); fflush(fp);
+              pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaProc);
+              fprintf(fp, "     CHPR %s,%d\n", proc->rotulo, nivel_lexico); fflush(fp);
+              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
             }
 ;
-//========================================================================
 
 expressao: expressao_simples relacao expressao
             {

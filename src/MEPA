@@ -5,16 +5,13 @@ R01: ENPR 1
      AMEM 1
      DSVS R02
 R02: NADA 
-     CRVL 0,0
-     ARMZ 1,0
-     CRVL 0,0
-     CRCT 1
-     SUBT
-     ARMZ 0,0
-     CRVL 1,0
+     CRVL 1,-4
      CRCT 1
      CMMA
      DSVF R03
+     CRVL 1,-4
+     CRCT 1
+     SUBT
      CHPR R01,1
      DSVS R04
 R03: NADA 
@@ -22,14 +19,17 @@ R03: NADA
      ARMZ 0,1
 R04: NADA 
      CRVL 0,1
+     ARMZ 1,0
      CRVL 1,0
+     CRVL 1,-4
      MULT
      ARMZ 0,1
      DMEM 1
-     RTPR 1,0
+     RTPR 1,1
 R00: NADA 
      LEIT
      ARMZ 0,0
+     CRVL 0,0
      CHPR R01,0
      CRVL 0,0
      IMPR
