@@ -9,7 +9,8 @@
 pilhaSimbolos* tabelaSimbolo;
 pilhaTipos* tabelaTipos;
 pilhaRotulo* tabelaRotulo;
-pilhaSimbolos* tabelaProc;
+pilhaSimbolos* tabelaChamada;
+passagem tipo_passagem;
 
 int num_vars;
 int nivel_lexico;
@@ -21,13 +22,23 @@ pilhaSimbolos * l_elem;
 pilhaSimbolos * procAtual;
 
 // imprime na tela um elemento da fila (chamada pela função queue_print)
-void print_elem (void *ptr) {
+void print_elem_simbolo (void *ptr) {
    pilhaSimbolos *elem = ptr ;
 
    if (!elem)
       return ;
 
-   printf ("%s", elem->identificador) ;
+   printf ("identificador: %s, tipo: %d, passagem: %d\n", elem->identificador, elem->tipov, elem->passa);
+}
+
+// imprime na tela um elemento da fila (chamada pela função queue_print)
+void print_elem (void *ptr) {
+   vetParam *elem = ptr ;
+
+   if (!elem)
+      return ;
+
+   printf ("tipo: %d, passagem: %d", elem->tipo, elem->passa);
 }
 
 %}
@@ -82,13 +93,12 @@ bloco: parte_declara_var
                 while(tabelaSimbolo && fim->nivel_lexico == nivel_lexico) {
                   fim = fim->prev;
                   pilhaSimbolos * no = queue_pop((queue_t**) &tabelaSimbolo);
-                  free(no);
                   if (no->categoria == variavel_simples)
                     count++;
+                  free(no);
                 }
                 fprintf(fp, "     DMEM %d\n", count); fflush(fp);
               }
-              pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaProc);
               if (tabelaSimbolo != NULL) {
                 pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaSimbolo);
                 fprintf(fp, "     RTPR %d,%d\n", nivel_lexico, proc->num_param); fflush(fp);
@@ -125,6 +135,7 @@ declara_procedimento: PROCEDURE IDENT
               strncpy(simb->identificador, token, TAM_TOKEN);
               simb->nivel_lexico = nivel_lexico;
               simb->categoria = procedimento;
+              simb->num_param = 0;
               queue_append((queue_t**) &tabelaSimbolo, (queue_t*) simb);
 
               nivel_lexico++;
@@ -141,23 +152,12 @@ declara_procedimento: PROCEDURE IDENT
               noPularAninhado->rotulo = rotuloPularAninhado;
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) noPularAninhado);
 
-              pilhaSimbolos * proc = calloc(1, sizeof(pilhaSimbolos));
-              proc->prev = NULL;
-              proc->next = NULL;
-              proc->rotulo = rotuloProc;
-              proc->identificador = calloc(1, TAM_TOKEN);
-              strncpy(proc->identificador, token, TAM_TOKEN);
-              proc->nivel_lexico = nivel_lexico;
-              proc->categoria = procedimento;
-
-              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
+              procAtual = simb;
             }
             param_formais PONTO_E_VIRGULA
             bloco
             {
-              l_elem = queue_pop((queue_t**) &tabelaSimbolo);
               nivel_lexico--;
-              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) l_elem);
             }
 ;
 
@@ -165,63 +165,25 @@ param_formais: parametros_formais
             |
 ;
 
-parametros_formais: ABRE_PARENTESES sec_par FECHA_PARENTESES
+parametros_formais:
+            ABRE_PARENTESES
+            sec_par
+            {
+              pilhaSimbolos *p = tabelaSimbolo->prev;
+              for(int aux = 0; aux < procAtual->num_param; aux++) {
+                p->deslocamento = -4 - aux;
+                p = p->prev;
+              }
+            }
+            FECHA_PARENTESES
 ;
 
-sec_par: PONTO_E_VIRGULA secao_de_parametros_formais sec_par
+sec_par: sec_par PONTO_E_VIRGULA secao_de_parametros_formais
             | secao_de_parametros_formais
 ;
 
-secao_de_parametros_formais: VAR lista_de_identificadores
-            { 
-              int aux = 0;
-              pilhaSimbolos *proc = tabelaSimbolo->prev;
-              pilhaSimbolos *p = tabelaSimbolo->prev;
-              while(aux < num_vars) {
-                proc = proc->prev;
-                p = p->prev;
-                aux++;
-              }
-              proc->num_param = num_vars;
-              aux = 0;
-              p = p->next;
-              while(aux < num_vars){
-                vetParam * param = calloc(1, sizeof(vetParam));
-                param->prev = NULL;
-                param->next = NULL;
-                param->tipo = p->tipov;
-                param->passa = referencia;
-                queue_append((queue_t**) &proc->parametros, (queue_t*) param);
-                p->deslocamento = -4 - num_vars + 1 + aux;
-                p = p->next;
-                aux++;
-              }
-            }
-            | lista_de_identificadores
-            { 
-              int aux = 0;
-              pilhaSimbolos *proc = tabelaSimbolo->prev;
-              pilhaSimbolos *p = tabelaSimbolo->prev;
-              while(aux < num_vars) {
-                proc = proc->prev;
-                p = p->prev;
-                aux++;
-              }
-              proc->num_param = num_vars;
-              aux = 0;
-              p = p->next;
-              while(aux < num_vars){
-                vetParam * param = calloc(1, sizeof(vetParam));
-                param->prev = NULL;
-                param->next = NULL;
-                param->tipo = p->tipov;
-                param->passa = valor;
-                queue_append((queue_t**) &proc->parametros, (queue_t*) param);
-                p->deslocamento = -4 - num_vars + 1 + aux;
-                p = p->next;
-                aux++;
-              }
-            }
+secao_de_parametros_formais: VAR { tipo_passagem = referencia; } lista_de_identificadores { tipo_passagem = valor; }
+            | { tipo_passagem = valor; } lista_de_identificadores { tipo_passagem = valor;}
 ;
 
 var: VAR declara_vars
@@ -319,7 +281,30 @@ lista_de_identificadores:
             { 
               num_vars = 0; 
             }
-            lista_id_pf DOIS_PONTOS tipo
+            lista_id_pf DOIS_PONTOS IDENT
+            { 
+              tipo_variavel tipo;
+              if (strcmp(token, "integer") == 0) {
+                tipo = tipo_int;
+              } else if (strcmp(token, "boolean") == 0) {
+                tipo = tipo_bool;
+              } else {
+                imprimeErro("tipo nao encontrado");
+              }
+
+              procAtual->num_param += num_vars;
+              pilhaSimbolos *p = tabelaSimbolo->prev;
+              for(int aux = 0; aux < num_vars; aux++) {
+                vetParam * param = calloc(1, sizeof(vetParam));
+                param->prev = NULL;
+                param->next = NULL;
+                param->tipo = tipo;
+                param->passa = tipo_passagem;
+                queue_append((queue_t**) &procAtual->parametros, (queue_t*) param);
+                p->passa = tipo_passagem;
+                p = p->prev;
+              }
+            }
 ;
 
 comando_composto: T_BEGIN comandos T_END
@@ -387,10 +372,15 @@ atribuicao: {
             {
               pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
               if(l_elem->tipov == tipo_expressao->tipo){
-                fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+                if(l_elem->passa == valor){
+                  fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+                } 
+                else if(l_elem->passa == referencia){
+                  fprintf(fp, "     ARMI %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+                }
               }
               else
-                imprimeErro("Erro de tipo");
+                imprimeErro("Erro de atribuicao");
               l_elem = NULL;
             }
 ;
@@ -442,18 +432,47 @@ chamada_procedimento_funcao_com_argumentos:
               strcpy(proc->identificador, no->identificador);
               proc->nivel_lexico = nivel_lexico;
               proc->categoria = procedimento;
-              proc->num_param = 0;
+              proc->num_param = no->num_param;
+              proc->deslocamento = 0;
+              proc->parametros = no->parametros;
 
-              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
+              queue_append((queue_t**) &tabelaChamada, (queue_t*) proc);
             }
             ABRE_PARENTESES
             lista_de_expressoes
             FECHA_PARENTESES
             {
               // chamar
-              pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaProc);
+              pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaChamada);
               fprintf(fp, "     CHPR %s,%d\n", proc->rotulo, nivel_lexico); fflush(fp);
-              queue_append((queue_t**) &tabelaProc, (queue_t*) proc);
+            }
+;
+
+lista_de_expressoes: expressao_chamada_procedimento VIRGULA lista_de_expressoes
+            | expressao_chamada_procedimento
+;
+
+expressao_chamada_procedimento:
+            {
+              pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaChamada);
+              vetParam* no = proc->parametros;
+              for (int aux = 0; aux < proc->deslocamento; aux++) { no = no->next; }
+              tipo_passagem = no->passa;
+              queue_append((queue_t**) &tabelaChamada, (queue_t*) proc);
+              // TODO: Quando passar mais parâmetros do que tem
+            }
+            expressao
+            {
+              tipo_passagem = valor;
+              pilhaTipos *tipo = queue_pop((queue_t**) &tabelaTipos);
+              pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaChamada);
+              vetParam* no = proc->parametros;
+              for (int aux = 0; aux < proc->deslocamento; aux++) { no = no->next; }
+              if (tipo->tipo != no->tipo) {
+                imprimeErro("Erro de tipo");
+              }
+              proc->deslocamento++;
+              queue_append((queue_t**) &tabelaChamada, (queue_t*) proc);
             }
 ;
 
@@ -597,7 +616,30 @@ fator: IDENT
               pilhaTipos * tipo_var = calloc(1, sizeof(pilhaTipos));
               tipo_var->tipo = no->tipov;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) tipo_var);
-              fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              // linha VS coluna PF vlr
+              if(no->categoria == variavel_simples && tipo_passagem == valor){
+                fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              }
+              // linha PR vlr coluna PF vlr
+              else if(no->categoria == parametro_formal && no->passa == valor && tipo_passagem == valor){
+                fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              }
+              // linha VS coluna PF ref
+              else if(no->categoria == variavel_simples && tipo_passagem == referencia){
+                fprintf(fp, "     CREN %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              }
+              // linha PR vlr coluna PF ref
+              else if(no->categoria == parametro_formal && no->passa == valor && tipo_passagem == referencia){
+                fprintf(fp, "     CREN %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              }
+              // linha PR ref coluna PF vlr
+              else if(no->categoria == parametro_formal && no->passa == referencia && tipo_passagem == valor){
+                fprintf(fp, "     CRVI %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              }
+              // linha PR ref coluna PF ref
+              else if(no->categoria == parametro_formal && no->passa == referencia && tipo_passagem == referencia){
+                fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              }
             }
             | numero 
             {
@@ -623,10 +665,6 @@ fator: IDENT
             // | chamada_de_funcao
             | ABRE_PARENTESES expressao FECHA_PARENTESES
             | NOT fator
-;
-
-lista_de_expressoes: expressao VIRGULA lista_de_expressoes
-            | expressao
 ;
 
 // chamada_de_funcao:
@@ -775,7 +813,8 @@ int main (int argc, char** argv) {
   tabelaSimbolo = NULL;
   tabelaTipos = NULL;
   tabelaRotulo = NULL;
-  tabelaProc = NULL;
+  tabelaChamada = NULL;
+  tipo_passagem = valor;
 
   l_elem = NULL;
   procAtual = NULL;

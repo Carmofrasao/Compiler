@@ -66,6 +66,7 @@ typedef struct pilhaSimbolos {
   int deslocamento;
   int num_param;
   vetParam *parametros;
+  passagem passa;
 } pilhaSimbolos;
 
 typedef struct pilhaTipos {
