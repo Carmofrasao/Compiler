@@ -187,6 +187,11 @@ procedure  { simbolo = simb_procedure;
           return PROCEDURE;
  }
 
+function  { simbolo = simb_function;
+          IMPRIME("function   ");
+          return FUNCTION;
+ }
+
 goto  { simbolo = simb_goto;
           IMPRIME("goto       ");
           return GOTO;

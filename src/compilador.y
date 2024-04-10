@@ -48,7 +48,7 @@ void print_elem (void *ptr) {
 %token T_BEGIN T_END VAR IDENT ATRIBUICAO THEN WHILE MAIOR_OU_IGUAL MAIS
 %token ARRAY TYPE LABEL PROCEDURE GOTO IF ELSE DO OR DIV AND NOT MENOS MULTI
 %token ABRE_CHAVE FECHA_CHAVE ABRE_COLCHETE FECHA_COLCHETE NUMERO DIVISAO
-%token READ WRITE TRUE FALSE
+%token READ WRITE TRUE FALSE FUNCTION
 
 %nonassoc LOWER_THAN_ELSE
 %nonassoc ELSE
@@ -110,17 +110,80 @@ bloco: parte_declara_var
 parte_declara_var: var |
 ;
 
-parte_declara: //rotulo
+parte_declara:
             | sub_rotina
-//            |
 ;
 
 sub_rotina: declara_proc sub_rotina | declara_proc
 ;
 
 declara_proc: declara_procedimento PONTO_E_VIRGULA
-            //| declara_funcao PONTO_E_VIRGULA 
+            | declara_funcao PONTO_E_VIRGULA 
 ;
+
+//==============================================================================
+declara_funcao: FUNCTION IDENT
+            {
+              char* rotuloFunc = geraRotulo(RotID);
+              RotID++;
+
+              pilhaSimbolos * simb = calloc(1, sizeof(pilhaSimbolos));
+              simb->prev = NULL;
+              simb->next = NULL;
+              simb->rotulo = rotuloFunc;
+              simb->identificador = calloc(1, TAM_TOKEN);
+              strncpy(simb->identificador, token, TAM_TOKEN);
+              simb->nivel_lexico = nivel_lexico;
+              simb->categoria = funcao;
+              simb->num_param = 0;
+              queue_append((queue_t**) &tabelaSimbolo, (queue_t*) simb);
+
+              nivel_lexico++;
+              desloc = 0;
+              
+              char* rotuloPularAninhado = geraRotulo(RotID);
+              RotID++;
+
+              char * comando = calloc(10, sizeof(char));
+              sprintf(comando, "ENPR %d", nivel_lexico);
+              geraCodigo(rotuloFunc, comando);
+
+              pilhaRotulo * noPularAninhado = calloc(1, sizeof(pilhaRotulo));
+              noPularAninhado->rotulo = rotuloPularAninhado;
+              queue_append((queue_t**) &tabelaRotulo, (queue_t*) noPularAninhado);
+
+              procAtual = simb;
+            }
+            param_formais DOIS_PONTOS IDENT
+            {
+              pilhaSimbolos *no = NULL;
+              if (tabelaSimbolo != NULL) {
+                no = tabelaSimbolo->prev;
+                while (strcmp(no->identificador, procAtual->identificador) != 0 && no != tabelaSimbolo)
+                  no = no->prev;
+              }
+
+              if(no == NULL || strcmp(no->identificador, procAtual->identificador) != 0)
+                imprimeErro("Função não encontrada.");
+              
+              tipo_variavel tipo;
+              if (strcmp(token, "integer") == 0) {
+                tipo = tipo_int;
+              } else if (strcmp(token, "boolean") == 0) {
+                tipo = tipo_bool;
+              } else {
+                imprimeErro("Tipo nao encontrado.");
+              }
+              no->tipov = tipo;
+              no->deslocamento = no->next->deslocamento - 1;
+            }
+            PONTO_E_VIRGULA
+            bloco
+            {
+              nivel_lexico--;
+            }
+;
+//==============================================================================
 
 declara_procedimento: PROCEDURE IDENT
             {
@@ -329,7 +392,6 @@ comando_sem_rotulo: atribuicao_ou_chamada_de_procedimento
             | comando_repetitivo
             | comando_composto
             | comando_condicional
-            // | desvio
             | leitura
             | escrita
 ;
@@ -342,8 +404,8 @@ atribuicao_ou_chamada_de_procedimento:
 
 atribuicao_ou_chamada_de_procedimento_depois_ident:
             atribuicao
-            | chamada_procedimento_funcao_sem_argumentos
-            | chamada_procedimento_funcao_com_argumentos
+            | chamada_procedimento_sem_argumentos
+            | chamada_procedimento_com_argumentos
 ;
 
 atribuicao: {
@@ -372,11 +434,14 @@ atribuicao: {
             {
               pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
               if(l_elem->tipov == tipo_expressao->tipo){
+                int nivel = l_elem->nivel_lexico;
+                if(l_elem->categoria == funcao)
+                  nivel++;
                 if(l_elem->passa == valor){
-                  fprintf(fp, "     ARMZ %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+                  fprintf(fp, "     ARMZ %d,%d\n", nivel, l_elem->deslocamento); fflush(fp);
                 } 
                 else if(l_elem->passa == referencia){
-                  fprintf(fp, "     ARMI %d,%d\n", l_elem->nivel_lexico, l_elem->deslocamento); fflush(fp);
+                  fprintf(fp, "     ARMI %d,%d\n", nivel, l_elem->deslocamento); fflush(fp);
                 }
               }
               else
@@ -385,7 +450,7 @@ atribuicao: {
             }
 ;
 
-chamada_procedimento_funcao_sem_argumentos:
+chamada_procedimento_sem_argumentos:
             {
               // chamar
               pilhaSimbolos *no = NULL;
@@ -406,7 +471,7 @@ chamada_procedimento_funcao_sem_argumentos:
             }
 ;
 
-chamada_procedimento_funcao_com_argumentos:
+chamada_procedimento_com_argumentos:
             {
               // memorizar a chamada
               pilhaSimbolos* no = NULL;
@@ -420,8 +485,8 @@ chamada_procedimento_funcao_com_argumentos:
               if(no == NULL || strcmp(no->identificador, token) != 0)
                 imprimeErro("Procedimento nao encontrado.");
               
-              if(no->categoria != procedimento)
-                imprimeErro("Erro de atribuição");
+              if(no->categoria != procedimento && no->categoria != funcao)
+                imprimeErro("Esperava procedimento ou funcao");
 
               pilhaSimbolos * proc = calloc(1, sizeof(pilhaSimbolos));
               proc->prev = NULL;
@@ -431,10 +496,14 @@ chamada_procedimento_funcao_com_argumentos:
               proc->identificador = calloc(1, TAM_TOKEN);
               strcpy(proc->identificador, no->identificador);
               proc->nivel_lexico = nivel_lexico;
-              proc->categoria = procedimento;
+              proc->categoria = no->categoria;
               proc->num_param = no->num_param;
               proc->deslocamento = 0;
               proc->parametros = no->parametros;
+
+              if (proc->categoria == funcao) {
+                fprintf(fp, "     AMEM 1\n");
+              }
 
               queue_append((queue_t**) &tabelaChamada, (queue_t*) proc);
             }
@@ -445,6 +514,11 @@ chamada_procedimento_funcao_com_argumentos:
               // chamar
               pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaChamada);
               fprintf(fp, "     CHPR %s,%d\n", proc->rotulo, nivel_lexico); fflush(fp);
+              if (proc->categoria == funcao) {
+                pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
+                no->tipo = proc->tipov;
+                queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
+              }
             }
 ;
 
@@ -492,7 +566,7 @@ expressao: expressao_simples relacao expressao
             | expressao_simples
 ;
 
-expressao_simples: mais_ou_menos_termo MAIS expressao_simples
+expressao_simples: expressao_simples MAIS termo
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
@@ -505,7 +579,7 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "SOMA");
             }
-            | mais_ou_menos_termo MENOS expressao_simples
+            | expressao_simples MENOS termo
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_int;
@@ -518,7 +592,7 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
                 imprimeErro("Erro de tipo");
               geraCodigo(NULL, "SUBT");
             }
-            | mais_ou_menos_termo OR expressao_simples
+            | expressao_simples OR termo
             {
               pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
               no->tipo = tipo_bool;
@@ -535,7 +609,7 @@ expressao_simples: mais_ou_menos_termo MAIS expressao_simples
 ;
 
 mais_ou_menos_termo: MAIS termo
-            | MENOS termo
+            | MENOS termo { geraCodigo(NULL, "INVR"); }
             | termo
 ;
 
@@ -615,30 +689,36 @@ fator: IDENT
                
               pilhaTipos * tipo_var = calloc(1, sizeof(pilhaTipos));
               tipo_var->tipo = no->tipov;
+
+              int nivel = no->nivel_lexico;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) tipo_var);
               // linha VS coluna PF vlr
               if(no->categoria == variavel_simples && tipo_passagem == valor){
-                fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVL %d,%d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR vlr coluna PF vlr
               else if(no->categoria == parametro_formal && no->passa == valor && tipo_passagem == valor){
-                fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVL %d,%d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha VS coluna PF ref
               else if(no->categoria == variavel_simples && tipo_passagem == referencia){
-                fprintf(fp, "     CREN %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CREN %d,%d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR vlr coluna PF ref
               else if(no->categoria == parametro_formal && no->passa == valor && tipo_passagem == referencia){
-                fprintf(fp, "     CREN %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CREN %d,%d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR ref coluna PF vlr
               else if(no->categoria == parametro_formal && no->passa == referencia && tipo_passagem == valor){
-                fprintf(fp, "     CRVI %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVI %d,%d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR ref coluna PF ref
               else if(no->categoria == parametro_formal && no->passa == referencia && tipo_passagem == referencia){
-                fprintf(fp, "     CRVL %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVL %d,%d\n", nivel, no->deslocamento); fflush(fp);
+              }
+              else if (no->categoria == funcao) {
+                fprintf(fp, "     AMEM 1\n"); fflush(fp);
+                fprintf(fp, "     CHPR %s,%d\n", no->rotulo, nivel+1); fflush(fp);
               }
             }
             | numero 
@@ -662,17 +742,10 @@ fator: IDENT
               queue_append((queue_t**) &tabelaTipos, (queue_t*) no);
               fprintf(fp, "     CRCT 0\n"); fflush(fp);
             }
-            // | chamada_de_funcao
+            | IDENT chamada_procedimento_com_argumentos
             | ABRE_PARENTESES expressao FECHA_PARENTESES
-            | NOT fator
+            | NOT fator { geraCodigo(NULL, "NEGA"); }
 ;
-
-// chamada_de_funcao:
-// ;
-
-// desvio:
-// ;
-
 
 comando_condicional: if_then
             {
@@ -771,7 +844,10 @@ simbolo_leitura: IDENT
               if(strcmp(no->identificador, token) != 0)
                 imprimeErro("Variavel nao encontrada.");
 
-              fprintf(fp, "     ARMZ %d,%d\n", no->nivel_lexico, no->deslocamento); fflush(fp);
+              int nivel = no->nivel_lexico;
+              if(no->categoria == funcao)
+                nivel++;
+              fprintf(fp, "     ARMZ %d,%d\n", nivel, no->deslocamento); fflush(fp);
 	          }
 ;
 
