@@ -13,6 +13,7 @@ pilhaSimbolos* tabelaChamada;
 passagem tipo_passagem;
 
 int num_vars;
+int num_vars_aux;
 int nivel_lexico;
 int desloc;
 int RotID;              
@@ -101,7 +102,7 @@ bloco: parte_declara_var
               }
               if (tabelaSimbolo != NULL) {
                 pilhaSimbolos * proc = queue_pop((queue_t**) &tabelaSimbolo);
-                fprintf(fp, "     RTPR %d,%d\n", nivel_lexico, proc->num_param); fflush(fp);
+                fprintf(fp, "     RTPR %d, %d\n", nivel_lexico, proc->num_param); fflush(fp);
                 queue_append((queue_t**) &tabelaSimbolo, (queue_t*) proc);
               }
             }
@@ -121,7 +122,6 @@ declara_proc: declara_procedimento PONTO_E_VIRGULA
             | declara_funcao PONTO_E_VIRGULA 
 ;
 
-//==============================================================================
 declara_funcao: FUNCTION IDENT
             {
               char* rotuloFunc = geraRotulo(RotID);
@@ -183,7 +183,6 @@ declara_funcao: FUNCTION IDENT
               nivel_lexico--;
             }
 ;
-//==============================================================================
 
 declara_procedimento: PROCEDURE IDENT
             {
@@ -249,7 +248,10 @@ secao_de_parametros_formais: VAR { tipo_passagem = referencia; } lista_de_identi
             | { tipo_passagem = valor; } lista_de_identificadores { tipo_passagem = valor;}
 ;
 
-var: VAR declara_vars
+var: VAR declara_vars 
+            {
+              num_vars_aux = 0;
+            }
 ;
 
 declara_vars: declara_vars declara_var
@@ -293,8 +295,9 @@ lista_id_var: lista_id_var VIRGULA IDENT
               strncpy(no->identificador, token, TAM_TOKEN);
               no->categoria = variavel_simples;
               no->nivel_lexico = nivel_lexico;
-              no->deslocamento = num_vars;
+              no->deslocamento = num_vars_aux;
               num_vars++;
+              num_vars_aux++;
               queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
             }
             | IDENT 
@@ -304,8 +307,9 @@ lista_id_var: lista_id_var VIRGULA IDENT
               strncpy(no->identificador, token, TAM_TOKEN);
               no->categoria = variavel_simples;
               no->nivel_lexico = nivel_lexico;
-              no->deslocamento = num_vars;
+              no->deslocamento = num_vars_aux;
               num_vars++;
+              num_vars_aux++;
               queue_append((queue_t**) &tabelaSimbolo, (queue_t*) no);
             }
 ;
@@ -438,10 +442,10 @@ atribuicao: {
                 if(l_elem->categoria == funcao)
                   nivel++;
                 if(l_elem->passa == valor){
-                  fprintf(fp, "     ARMZ %d,%d\n", nivel, l_elem->deslocamento); fflush(fp);
+                  fprintf(fp, "     ARMZ %d, %d\n", nivel, l_elem->deslocamento); fflush(fp);
                 } 
                 else if(l_elem->passa == referencia){
-                  fprintf(fp, "     ARMI %d,%d\n", nivel, l_elem->deslocamento); fflush(fp);
+                  fprintf(fp, "     ARMI %d, %d\n", nivel, l_elem->deslocamento); fflush(fp);
                 }
               }
               else
@@ -467,7 +471,7 @@ chamada_procedimento_sem_argumentos:
               if(no->categoria != procedimento)
                 imprimeErro("Erro de atribuição");
               
-              fprintf(fp, "     CHPR %s,%d\n", no->rotulo, nivel_lexico); fflush(fp);
+              fprintf(fp, "     CHPR %s, %d\n", no->rotulo, nivel_lexico); fflush(fp);
             }
 ;
 
@@ -513,7 +517,7 @@ chamada_procedimento_com_argumentos:
             {
               // chamar
               pilhaSimbolos *proc = queue_pop((queue_t**) &tabelaChamada);
-              fprintf(fp, "     CHPR %s,%d\n", proc->rotulo, nivel_lexico); fflush(fp);
+              fprintf(fp, "     CHPR %s, %d\n", proc->rotulo, nivel_lexico); fflush(fp);
               if (proc->categoria == funcao) {
                 pilhaTipos * no = calloc(1, sizeof(pilhaTipos));
                 no->tipo = proc->tipov;
@@ -694,31 +698,31 @@ fator: IDENT
               queue_append((queue_t**) &tabelaTipos, (queue_t*) tipo_var);
               // linha VS coluna PF vlr
               if(no->categoria == variavel_simples && tipo_passagem == valor){
-                fprintf(fp, "     CRVL %d,%d\n", nivel, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVL %d, %d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR vlr coluna PF vlr
               else if(no->categoria == parametro_formal && no->passa == valor && tipo_passagem == valor){
-                fprintf(fp, "     CRVL %d,%d\n", nivel, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVL %d, %d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha VS coluna PF ref
               else if(no->categoria == variavel_simples && tipo_passagem == referencia){
-                fprintf(fp, "     CREN %d,%d\n", nivel, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CREN %d, %d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR vlr coluna PF ref
               else if(no->categoria == parametro_formal && no->passa == valor && tipo_passagem == referencia){
-                fprintf(fp, "     CREN %d,%d\n", nivel, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CREN %d, %d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR ref coluna PF vlr
               else if(no->categoria == parametro_formal && no->passa == referencia && tipo_passagem == valor){
-                fprintf(fp, "     CRVI %d,%d\n", nivel, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVI %d, %d\n", nivel, no->deslocamento); fflush(fp);
               }
               // linha PR ref coluna PF ref
               else if(no->categoria == parametro_formal && no->passa == referencia && tipo_passagem == referencia){
-                fprintf(fp, "     CRVL %d,%d\n", nivel, no->deslocamento); fflush(fp);
+                fprintf(fp, "     CRVL %d, %d\n", nivel, no->deslocamento); fflush(fp);
               }
               else if (no->categoria == funcao) {
                 fprintf(fp, "     AMEM 1\n"); fflush(fp);
-                fprintf(fp, "     CHPR %s,%d\n", no->rotulo, nivel+1); fflush(fp);
+                fprintf(fp, "     CHPR %s, %d\n", no->rotulo, nivel+1); fflush(fp);
               }
             }
             | numero 
@@ -772,14 +776,20 @@ if_then: IF expressao
               RotID++;
 
               pilhaRotulo * noElse = calloc(1, sizeof(pilhaRotulo));
-              noElse->rotulo = rotuloElse;
+              noElse->rotulo = rotuloFim;
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) noElse);
               
               pilhaRotulo * noFim = calloc(1, sizeof(pilhaRotulo));
-              noFim->rotulo = rotuloFim;
+              noFim->rotulo = rotuloElse;
               queue_append((queue_t**) &tabelaRotulo, (queue_t*) noFim);
 
-              fprintf(fp, "     DSVF %s\n", rotuloElse); fflush(fp);
+              pilhaTipos * tipo = queue_pop((queue_t**) &tabelaTipos);
+
+              if(tipo->tipo != tipo_bool){
+                imprimeErro("Erro de atribuição");
+              }
+
+              fprintf(fp, "     DSVF %s\n", rotuloFim); fflush(fp);
             }
             THEN comando_sem_rotulo
             {
@@ -847,7 +857,7 @@ simbolo_leitura: IDENT
               int nivel = no->nivel_lexico;
               if(no->categoria == funcao)
                 nivel++;
-              fprintf(fp, "     ARMZ %d,%d\n", nivel, no->deslocamento); fflush(fp);
+              fprintf(fp, "     ARMZ %d, %d\n", nivel, no->deslocamento); fflush(fp);
 	          }
 ;
 
@@ -895,6 +905,8 @@ int main (int argc, char** argv) {
   l_elem = NULL;
   procAtual = NULL;
   RotID = 0;
+  num_vars = 0;
+  num_vars_aux = 0;
   nivel_lexico = 0;
 
   yyin=fp;
