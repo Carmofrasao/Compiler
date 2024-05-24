@@ -2,7 +2,4 @@
 
 Repository for my compiler work
 
-## Para usar a pilha
-
-* Arquivo testafila.c
-
+In this repository is the source code for a pascal compiler for MEPA

@@ -11,7 +11,6 @@ pilhaTipos* tabelaTipos;
 pilhaRotulo* tabelaRotulo;
 pilhaSimbolos* tabelaChamada;
 passagem tipo_passagem;
-pilhaSubtipo * tabelaSubtipo;
 
 int num_vars;
 int num_vars_aux;
@@ -24,17 +23,17 @@ pilhaSimbolos * l_elem;
 pilhaSimbolos * procAtual;
 
 // imprime na tela um elemento da fila (chamada pela função queue_print)
-void print_elem (void *ptr) {
-   pilhaTipos *elem = ptr ;
+void print_elem_simbolo (void *ptr) {
+   pilhaSimbolos *elem = ptr ;
 
    if (!elem)
       return ;
 
-   printf ("tipo: %d, tem sub: %d\n", elem->tipo, elem->tem_sub);
+   printf ("identificador: %s, tipo: %d, passagem: %d\n", elem->identificador, elem->tipov, elem->passa);
 }
 
 // imprime na tela um elemento da fila (chamada pela função queue_print)
-void print_elem_s (void *ptr) {
+void print_elem (void *ptr) {
    vetParam *elem = ptr ;
 
    if (!elem)
@@ -75,10 +74,7 @@ programa:
             }
 ;
 
-bloco: type bloco | parte_declara_var bloco_aux
-;
-
-bloco_aux:
+bloco: parte_declara_var
             {
               pilhaRotulo * rotulo = queue_pop((queue_t**) &tabelaRotulo);
               fprintf(fp, "     DSVS %s\n", rotulo->rotulo); fflush(fp);
@@ -113,46 +109,6 @@ bloco_aux:
 ;
 
 parte_declara_var: var |
-;
-
-type: TYPE declara_types
-;
-
-declara_types: declara_types declara_type
-        | declara_type
-;
-
-declara_type:
-        id_type
-        tipo_sub
-        PONTO_E_VIRGULA
-;
-
-id_type: IDENT
-        {
-          pilhaSubtipo * sub = calloc(1, sizeof(pilhaSubtipo));
-          sub->subtipo = calloc(16, sizeof(char));
-          
-          strncpy(sub->subtipo, token, TAM_TOKEN);
-          queue_append((queue_t**) &tabelaSubtipo, (queue_t*) sub);
-        }
-;
-
-tipo_sub: IGUAL IDENT
-        {
-          pilhaSubtipo * sub = queue_pop((queue_t**) &tabelaSubtipo);
-          tipo_variavel tipo;
-          if(strcmp(token, "integer") == 0){
-            tipo = tipo_int;
-          }
-          else if(strcmp(token, "boolean") == 0){
-            tipo = tipo_bool;
-          } else {
-            imprimeErro("Tipo não encontrado");
-          }
-          sub->tipo = tipo;
-          queue_append((queue_t**) &tabelaSubtipo, (queue_t*) sub);
-        }
 ;
 
 parte_declara:
@@ -317,40 +273,17 @@ declara_var:
 tipo: IDENT 
             {
               tipo_variavel tipo;
-              pilhaSubtipo * no = NULL;
-              int tem = 0;
               if (strcmp(token, "integer") == 0) {
                 tipo = tipo_int;
               } else if (strcmp(token, "boolean") == 0) {
                 tipo = tipo_bool;
               } else {
-                
-                if (tabelaSubtipo != NULL) {
-                  no = tabelaSubtipo->prev;
-                  while (strcmp(no->subtipo, token) != 0 && no != tabelaSubtipo)
-                    no = no->prev;
-                }
-                tem = 1;
-                
-                if(strcmp(no->subtipo, token) != 0)
-                  imprimeErro("tipo nao encontrado");
+                imprimeErro("tipo nao encontrado");
               }
               pilhaSimbolos *fim = tabelaSimbolo->prev;
-              if(tem == 0){
-                for (int i = 0; i < num_vars; i++) {
-                  fim->tem_s = 0;
-                  fim->tipov = tipo;
-                  fim = fim->prev;
-                }
-              }
-              else{
-                for (int i = 0; i < num_vars; i++) {
-                  fim->tem_s = 1;
-                  fim->tipov = no->tipo;
-                  fim->sub = calloc(16, sizeof(char));
-                  strncpy(fim->sub, no->subtipo, TAM_TOKEN);
-                  fim = fim->prev;
-                }
+              for (int i = 0; i < num_vars; i++) {
+                fim->tipov = tipo;
+                fim = fim->prev;
               }
             }
 ;
@@ -504,20 +437,6 @@ atribuicao: {
             expressao
             {
               pilhaTipos *tipo_expressao = queue_pop((queue_t**) &tabelaTipos);
-              printf("\ntem1: %d, tem2: %d\n", l_elem->tem_s, tipo_expressao->tem_sub);
-              printf("\nvar1: %s\n", l_elem->identificador);
-              queue_print("Tabela tipo: ", (queue_t*) tabelaTipos, print_elem);
-              if(l_elem->tem_s == 1 && tipo_expressao->tem_sub == 1){
-                if(strcmp(l_elem->sub, tipo_expressao->subtipo->subtipo) != 0)
-                  imprimeErro("Erro de atribuição");
-              } else if(l_elem->tem_s == 1){
-                if(l_elem->tipov != tipo_expressao->tipo)
-                  imprimeErro("Erro de atribuição");
-              } else if(tipo_expressao->tem_sub == 1){
-                if(l_elem->tipov != tipo_expressao->subtipo->tipo)
-                  imprimeErro("Erro de atribuição");
-              }
-
               if(l_elem->tipov == tipo_expressao->tipo){
                 int nivel = l_elem->nivel_lexico;
                 if(l_elem->categoria == funcao)
@@ -773,12 +692,8 @@ fator: IDENT
                 imprimeErro("Variavel nao encontrada.");
                
               pilhaTipos * tipo_var = calloc(1, sizeof(pilhaTipos));
-              if(no->tem_s == 0)
-                tipo_var->tipo = no->tipov;
-              else if (no->tem_s == 1){
-                tipo_var->subtipo = calloc(1, sizeof(pilhaSubtipo));
-                tipo_var->subtipo->tipo = no->tipov;
-              }
+              tipo_var->tipo = no->tipov;
+
               int nivel = no->nivel_lexico;
               queue_append((queue_t**) &tabelaTipos, (queue_t*) tipo_var);
               // linha VS coluna PF vlr
@@ -986,7 +901,6 @@ int main (int argc, char** argv) {
   tabelaRotulo = NULL;
   tabelaChamada = NULL;
   tipo_passagem = valor;
-  tabelaSubtipo = NULL;
 
   l_elem = NULL;
   procAtual = NULL;
