@@ -25,4 +25,4 @@ queue.o: queue.c
 	gcc -c queue.c -o queue.o
 
 clean :
-	rm -f compilador.tab.* lex.yy.c compilador.o compilador compilador.output
+	rm -f compilador.tab.* lex.yy.c *.o compilador compilador.output

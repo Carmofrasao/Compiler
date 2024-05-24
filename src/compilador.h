@@ -54,6 +54,13 @@ typedef struct vetParam {
   passagem passa;
 } vetParam;
 
+typedef struct pilhaSubtipo {
+  struct pilhaSubtipo *prev; 
+  struct pilhaSubtipo *next;
+  char *subtipo;
+  tipo_variavel tipo;
+} pilhaSubtipo;
+
 //tabela de símbolos
 typedef struct pilhaSimbolos {
   struct pilhaSimbolos *prev; 
@@ -67,12 +74,16 @@ typedef struct pilhaSimbolos {
   int num_param;
   vetParam *parametros;
   passagem passa;
+  int tem_s;
+  char * sub;
 } pilhaSimbolos;
 
 typedef struct pilhaTipos {
   struct pilhaTipos *prev;
   struct pilhaTipos *next;
   tipo_variavel tipo;
+  pilhaSubtipo *subtipo;
+  int tem_sub;
 } pilhaTipos;
 
 typedef struct pilhaRotulo {
